@@ -85,6 +85,19 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(style={"input_type": "password"}, trim_whitespace=False)
 
 
+class LoginResponseSerializer(serializers.Serializer):
+    """Muvaffaqiyatli kirish javobi — API hujjati uchun."""
+
+    token = serializers.CharField()
+    user = CurrentUserSerializer()
+
+
+class ErrorResponseSerializer(serializers.Serializer):
+    """Xato javobi."""
+
+    error = serializers.CharField()
+
+
 class SystemSettingSerializer(serializers.ModelSerializer):
     value = serializers.IntegerField(source="number_value", required=False, allow_null=True)
     on = serializers.BooleanField(source="is_enabled", required=False)

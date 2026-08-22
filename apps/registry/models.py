@@ -8,6 +8,50 @@ from core.models import TimeStampedModel
 pinfl_validator = RegexValidator(r"^\d{14}$", "PINFL 14 ta raqamdan iborat bo‘lishi kerak")
 
 
+class Employer(TimeStampedModel):
+    """Migrant yuboruvchi tashkilot."""
+
+    class Employment(models.TextChoices):
+        FORMAL = "Rasmiy shartnoma", "Rasmiy shartnoma"
+        INFORMAL = "Norasmiy bandlik", "Norasmiy bandlik"
+
+    class Status(models.TextChoices):
+        APPROVED = "Tasdiqlangan", "Tasdiqlangan"
+        WATCHED = "Kuzatuvda", "Kuzatuvda"
+        RESTRICTED = "Cheklangan", "Cheklangan"
+
+    name = models.CharField("kompaniya nomi", max_length=180, unique=True)
+    direction = models.CharField("yo‘nalishi", max_length=90)
+    countries = models.ManyToManyField(
+        Country, verbose_name="qaysi davlatlarga yuboradi", related_name="employers", blank=True,
+    )
+    employment_type = models.CharField(
+        "shartnoma", max_length=24, choices=Employment.choices, default=Employment.FORMAL,
+    )
+    sent_count = models.PositiveIntegerField("yuborilgan migrantlar", default=0)
+    remittance_amount = models.PositiveIntegerField("jo‘natma, mln $", default=0)
+    status = models.CharField(
+        "holati", max_length=16, choices=Status.choices, default=Status.WATCHED,
+    )
+
+    class Meta:
+        verbose_name = "ish beruvchi"
+        verbose_name_plural = "ish beruvchilar"
+        ordering = ["-sent_count", "name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+    @property
+    def formal_share(self) -> int:
+        """Ko'rsatkichlar uchun foiz ko'rinishi — tanlovdan kelib chiqadi."""
+        return 100 if self.employment_type == self.Employment.FORMAL else 0
+
+    @property
+    def is_informal(self) -> bool:
+        return self.employment_type == self.Employment.INFORMAL
+
+
 class Migrant(TimeStampedModel):
     """Reyestrdagi shaxs."""
 
@@ -62,7 +106,14 @@ class Migrant(TimeStampedModel):
     )
     is_convicted = models.BooleanField("sudlangan", default=False)
 
-    employer_name = models.CharField("ish beruvchi", max_length=180, blank=True)
+    employer = models.ForeignKey(
+        "registry.Employer", verbose_name="ish beruvchi", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="migrants",
+    )
+    employer_name = models.CharField(
+        "ish beruvchi (matn)", max_length=180, blank=True,
+        help_text="Reyestrda bo‘lmagan tashkilot uchun — erkin matn",
+    )
     address = models.CharField("xorijdagi manzil", max_length=250, blank=True)
     phone = models.CharField("telefon", max_length=32, blank=True)
 
@@ -88,46 +139,15 @@ class Migrant(TimeStampedModel):
     def is_at_risk(self) -> bool:
         return self.legal_status != self.LegalStatus.CLEAR
 
-
-class Employer(TimeStampedModel):
-    """Migrant yuboruvchi tashkilot."""
-
-    class Employment(models.TextChoices):
-        FORMAL = "Rasmiy shartnoma", "Rasmiy shartnoma"
-        INFORMAL = "Norasmiy bandlik", "Norasmiy bandlik"
-
-    class Status(models.TextChoices):
-        APPROVED = "Tasdiqlangan", "Tasdiqlangan"
-        WATCHED = "Kuzatuvda", "Kuzatuvda"
-        RESTRICTED = "Cheklangan", "Cheklangan"
-
-    name = models.CharField("kompaniya nomi", max_length=180, unique=True)
-    direction = models.CharField("yo‘nalishi", max_length=90)
-    countries = models.ManyToManyField(
-        Country, verbose_name="qaysi davlatlarga yuboradi", related_name="employers", blank=True,
-    )
-    employment_type = models.CharField(
-        "shartnoma", max_length=24, choices=Employment.choices, default=Employment.FORMAL,
-    )
-    sent_count = models.PositiveIntegerField("yuborilgan migrantlar", default=0)
-    remittance_amount = models.PositiveIntegerField("jo‘natma, mln $", default=0)
-    status = models.CharField(
-        "holati", max_length=16, choices=Status.choices, default=Status.WATCHED,
-    )
-
-    class Meta:
-        verbose_name = "ish beruvchi"
-        verbose_name_plural = "ish beruvchilar"
-        ordering = ["-sent_count", "name"]
-
-    def __str__(self) -> str:
-        return self.name
-
     @property
-    def formal_share(self) -> int:
-        """Ko'rsatkichlar uchun foiz ko'rinishi — tanlovdan kelib chiqadi."""
-        return 100 if self.employment_type == self.Employment.FORMAL else 0
+    def employer_label(self) -> str:
+        """Bog'langan tashkilot nomi, bo'lmasa — erkin matn."""
+        return self.employer.name if self.employer_id else self.employer_name
 
-    @property
-    def is_informal(self) -> bool:
-        return self.employment_type == self.Employment.INFORMAL
+    def link_employer(self) -> None:
+        """Matn bo'yicha reyestrdagi ish beruvchini topib bog'laydi."""
+        if self.employer_id or not self.employer_name:
+            return
+        match = Employer.objects.filter(name__iexact=self.employer_name.strip()).first()
+        if match:
+            self.employer = match

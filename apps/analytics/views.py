@@ -1,5 +1,9 @@
 """Analitika API'si va umumlashtirilgan dashboard endpointi."""
+from datetime import date
+
 from django.db.models import Count, Sum
+from drf_spectacular.utils import extend_schema
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -23,6 +27,7 @@ from .models import (
 )
 from .serializers import (
     AiInsightSerializer,
+    DashboardSummarySerializer,
     AiSuggestionSerializer,
     IntegrationSerializer,
     MetricTileSerializer,
@@ -98,6 +103,32 @@ class ReportTemplateViewSet(AuditedModelViewSet):
     filterset_fields = ["period"]
     search_fields = ["name", "description"]
 
+    @action(detail=True, methods=["post"])
+    def generate(self, request, pk=None):
+        """
+        Shablon bo'yicha hisobot shakllantiradi.
+
+        Hozircha arxivga yozuv qo'shadi — fayl generatsiyasi (XLSX/PDF)
+        keyingi bosqichda shu joyga ulanadi.
+        """
+        template = self.get_object()
+        today = date.today()
+        entry = ReportArchiveEntry.objects.create(
+            name=f"{template.name} — {today.strftime('%Y-%m-%d')}",
+            size="—",
+            generated_on=today,
+            generated_by=getattr(request.user, "login", "tizim"),
+        )
+        self.write_audit("shakllantirildi")
+        return Response(
+            {
+                "template": ReportTemplateSerializer(template).data,
+                "archive": ReportArchiveEntrySerializer(entry).data,
+                "detail": "Hisobot arxivga qo‘shildi",
+            },
+            status=201,
+        )
+
 
 class ReportArchiveViewSet(AuditedModelViewSet):
     queryset = ReportArchiveEntry.objects.all()
@@ -115,7 +146,12 @@ class DashboardSummaryView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = DashboardSummarySerializer
 
+    @extend_schema(
+        summary="Boshqaruv paneli uchun yig‘ma ko‘rsatkichlar",
+        responses={200: DashboardSummarySerializer},
+    )
     def get(self, request):
         countries = Country.objects.aggregate(
             total=Sum("total"),

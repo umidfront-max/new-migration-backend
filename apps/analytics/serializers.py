@@ -89,3 +89,15 @@ class ReportArchiveEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = ReportArchiveEntry
         fields = ["id", "name", "size", "at", "by"]
+
+
+class DashboardSummarySerializer(serializers.Serializer):
+    """`/api/dashboard/summary/` javobi — API hujjati uchun."""
+
+    countries = serializers.DictField(child=serializers.IntegerField())
+    regions = serializers.DictField(child=serializers.IntegerField())
+    border = serializers.DictField(child=serializers.IntegerField())
+    registry = serializers.DictField(child=serializers.IntegerField())
+    employers = serializers.DictField(child=serializers.IntegerField())
+    sos = serializers.DictField(child=serializers.IntegerField())
+    violations = serializers.DictField(child=serializers.IntegerField())

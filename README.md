@@ -1,8 +1,8 @@
 # Migratsiya monitoringi — backend
 
-Django 5 + Django REST Framework. Migratsiya monitoringi dashboardi uchun REST
-API: reyestr, geografiya, monitoring, analitika, foydalanuvchilar va audit
-jurnali.
+Django 5 + Django REST Framework. Mehnat migratsiyasi monitoringi platformasi
+uchun REST API: reyestr, geografiya, chegara, konsullik, SOS xizmati, analitika,
+foydalanuvchilar va audit jurnali.
 
 Mustaqil loyiha — frontend (`migrant-dashboard`) alohida repozitoriyada.
 
@@ -22,11 +22,26 @@ python manage.py runserver 8000
 Demo ma'lumot `seed/demo_seed.json` faylidan olinadi — u repozitoriyada bor,
 qo'shimcha qadam kerak emas.
 
-API — `http://127.0.0.1:8000/api/`, admin panel — `/admin/`.
+| Manzil | Nima |
+|---|---|
+| `/api/` | REST API |
+| `/api/docs/` | Swagger UI — interaktiv hujjat |
+| `/api/redoc/` | ReDoc |
+| `/api/schema/` | OpenAPI 3 sxemasi (YAML) |
+| `/admin/` | Django admin paneli |
 
 Demo hisoblar: `admin.root`, `sh.rasulova`, `konsul.msk`, `operator.fargona`,
 `chegara.termiz` — parol hammasida **`demo`**. `operator.andijon` bloklangan
 (kirishni tekshirish uchun).
+
+### Docker bilan
+
+```bash
+docker compose up --build
+docker compose exec api python manage.py seed_demo --flush
+```
+
+PostgreSQL, migratsiya va gunicorn avtomatik ishga tushadi.
 
 ## Autentifikatsiya
 
@@ -47,8 +62,10 @@ curl http://127.0.0.1:8000/api/migrants/ -H "Authorization: Token <TOKEN>"
 | `POST /api/auth/logout/` | tokenni bekor qiladi |
 | `GET /api/auth/me/` | joriy foydalanuvchi |
 
-Bloklangan hisob `403`, noto'g'ri parol `401` qaytaradi. Har bir kirish urinishi —
-muvaffaqiyatlisi ham, rad etilgani ham — audit jurnaliga tushadi.
+Bloklangan hisob `403`, noto'g'ri parol `401` qaytaradi. Parolni tanlab ko'rishga
+qarshi cheklov: bir IP dan daqiqada 10 urinish (`THROTTLE_SIGN_IN`), oshib ketsa
+`429`. Har bir kirish urinishi — muvaffaqiyatlisi ham, rad etilgani ham — audit
+jurnaliga tushadi.
 
 ## Endpointlar
 
@@ -76,6 +93,20 @@ Har bir ro'yxatda `?search=`, `?ordering=`, `?page=`, `?page_size=` ishlaydi.
 Filtrlar: `migrants?risky=true&country=RU&gender=Ayol`,
 `employers?employment_type=Norasmiy bandlik`, `sos-events?severity=critical`.
 
+### Qo'shimcha amallar
+
+| Amal | Nima qiladi |
+|---|---|
+| `GET /api/migrants/export/` | CSV eksport — joriy filtrlar bo'yicha |
+| `GET /api/employers/export/` | CSV eksport |
+| `GET /api/sos-events/export/` | CSV eksport |
+| `POST /api/sos-events/{id}/resolve/` | murojaatni yopadi (takroriy urinish — `409`) |
+| `POST /api/sos-events/{id}/reopen/` | yopilgan murojaatni qayta ochadi |
+| `POST /api/report-templates/{id}/generate/` | shablon bo'yicha arxivga yozuv qo'shadi |
+
+CSV UTF-8 BOM bilan yoziladi — Excel'da to'g'ri ochiladi. Eksport ham audit
+jurnaliga tushadi va soatiga cheklangan (`THROTTLE_EXPORT`).
+
 ## Muhim mantiq
 
 **Risk ball avtomatik.** Migrant qo'shishda `score` berilmasa,
@@ -83,18 +114,22 @@ Filtrlar: `migrants?risky=true&country=RU&gender=Ayol`,
 chiqish maqsadi, sudlanganlik, ish beruvchi va huquqiy holat asosida hisoblaydi.
 Formula frontenddagi `schemas.js::scoreOf` bilan bir xil.
 
-**Ish beruvchi.** `countries` — davlat nomlari ro'yxati, bo'sh bo'lishi mumkin emas.
-`employment` ikki qiymatdan biri; `formal` (100 yoki 0) shundan kelib chiqadi va
-faqat o'qish uchun.
+**Ish beruvchi bog'lanishi.** Migrantdagi `employer` — matn. Agar reyestrda
+shunday nomli tashkilot bo'lsa, `Migrant.employer` foreign key avtomatik
+bog'lanadi; bo'lmasa erkin matn sifatida saqlanadi. Shu sababli ish beruvchi
+sahifasida uning migrantlari sonini ko'rish mumkin (`migrantCount`).
+
+**Ish beruvchi shartnomasi.** `countries` — davlat nomlari ro'yxati, bo'sh
+bo'lishi mumkin emas. `employment` ikki qiymatdan biri; `formal` (100 yoki 0)
+shundan kelib chiqadi va faqat o'qish uchun.
 
 **Parol.** Django'ning standart PBKDF2 hashi ishlatiladi. `password` faqat
 yozish uchun — javobda hech qachon qaytmaydi. Tahrirlashda bo'sh qoldirilsa eski
-parol saqlanadi. Frontenddagi vaqtinchalik `src/composables/usePassword.js` shu
-API ga o'tilgach keraksiz bo'ladi.
+parol saqlanadi.
 
 **Audit jurnali.** `core/viewsets.py::AuditedModelViewSet` har bir qo'shish,
-o'zgartirish va o'chirishni jurnalga yozadi. API orqali jurnalga qo'lda yozib
-bo'lmaydi (`405`).
+o'zgartirish, o'chirish va eksportni jurnalga yozadi. API orqali jurnalga qo'lda
+yozib bo'lmaydi (`405`).
 
 **Huquqlar.** O'qish — barcha kirgan foydalanuvchilarga. `users`, `roles` va
 `settings` ni o'zgartirish faqat *Super administrator* va
@@ -108,6 +143,7 @@ migrant-backend/
 ├── core/              umumiy qatlam
 │   ├── models.py          TimeStampedModel, OrderedModel
 │   ├── viewsets.py        AuditedModelViewSet
+│   ├── export.py          CsvExportMixin, build_csv_response()
 │   ├── permissions.py     IsAdministrator, ReadOnly
 │   ├── pagination.py      DefaultPagination, LargePagination
 │   └── management/commands/seed_demo.py
@@ -121,8 +157,14 @@ migrant-backend/
 │                      AiSuggestion, Integration, RiskWeight, ReportTemplate,
 │                      ReportArchiveEntry
 ├── scripts/           export_seed.mjs — frontend demo ma'lumotini chiqaradi
-└── seed/              demo_seed.json (repozitoriyada saqlanadi)
+├── seed/              demo_seed.json (repozitoriyada saqlanadi)
+├── Dockerfile
+└── docker-compose.yml
 ```
+
+O'xshash KPI to'plamlari (dashboard, konsullik, qaytish, chegara, SOS, audit)
+alohida jadval emas — bitta `MetricTile` modelida `group` maydoni bilan
+saqlanadi. Taqsimotlar ham shunday: `ShareSlice`.
 
 ### Demo ma'lumotni yangilash
 
@@ -136,26 +178,47 @@ node scripts/export_seed.mjs /yo'l/migrant-dashboard/src/data/mock.js
 
 Bu qadam ixtiyoriy — backendni ishga tushirish uchun frontend kerak emas.
 
-O'xshash KPI to'plamlari (dashboard, konsullik, qaytish, chegara, SOS, audit)
-alohida jadval emas — bitta `MetricTile` modelida `group` maydoni bilan
-saqlanadi. Taqsimotlar ham shunday: `ShareSlice`.
-
 ## Testlar
 
 ```bash
 python manage.py test
 ```
 
-27 ta test: risk ball formulasi, PINFL tekshiruvi, ish beruvchi davlatlari,
-kirish/chiqish, bloklangan hisob, parol o'rnatish va yangilash, rol huquqlari,
-audit jurnalining o'zgarmasligi.
+**59 ta test**, barcha ilovalarni qoplaydi:
+
+| Ilova | Nima tekshiriladi |
+|---|---|
+| `accounts` | kirish/chiqish, bloklangan hisob, parol o'rnatish va yangilash, rol huquqlari, jurnalning o'zgarmasligi |
+| `registry` | risk ball formulasi va chegaralari, PINFL tekshiruvi, ish beruvchi davlatlari, `risky` filtri |
+| `geography` | davlat ko'rsatkichlari, ISO kod normallashuvi, punktdagi `in`/`out`, tuman noyobligi |
+| `monitoring` | SOS kodi va koordinatasi, resolve/reopen, CSV eksport va filtrlar |
+| `analytics` | guruh filtrlari, 12 oylik qator, hisobot shakllantirish, yig'ma ko'rsatkichlar |
 
 ## Sozlamalar
 
-Muhit o'zgaruvchilari `.env` faylidan yoki muhitdan o'qiladi
-(`.env.example` dan nusxa oling). Muhitda allaqachon bor qiymat faylnikidan
-ustun turadi. Ishlab chiqarishda
-`DJANGO_SECRET_KEY` va `DJANGO_DEBUG=False` majburiy; SQLite o'rniga PostgreSQL
-ga o'tish uchun `config/settings.py` dagi `DATABASES` ni almashtirish yetarli.
+Muhit o'zgaruvchilari `.env` faylidan yoki muhitdan o'qiladi (`.env.example`
+dan nusxa oling). Muhitdagi qiymat fayldagisidan ustun turadi.
 
-CORS Vite dev serveri portlariga (5173–5175) ochiq.
+| O'zgaruvchi | Standart | Izoh |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | dev kaliti | Prodda majburiy, 50+ belgi |
+| `DJANGO_DEBUG` | `True` | Prodda `False` |
+| `DJANGO_ALLOWED_HOSTS` | localhost | Vergul bilan |
+| `DATABASE_URL` | — | Bo'sh bo'lsa SQLite; `postgresql://…` qo'llanadi |
+| `CORS_ALLOWED_ORIGINS` | Vite portlari | Frontend manzillari |
+| `THROTTLE_SIGN_IN` | `10/min` | Kirish urinishlari cheklovi |
+| `THROTTLE_EXPORT` | `20/min` | Eksport cheklovi |
+| `SECURE_SSL_REDIRECT` | `True` | Reverse-proxy HTTPS ni hal qilsa — `False` |
+
+`DEBUG=False` bo'lganda HSTS, xavfsiz cookie va SSL yo'naltirish yoqiladi;
+`manage.py check --deploy` ogohlantirishsiz o'tadi. Statik fayllar WhiteNoise
+orqali beriladi.
+
+## Nima qilinmagan
+
+- **Frontend hali ulanmagan** — `migrant-dashboard` hamon `localStorage` bilan
+  ishlaydi. Serializerlar frontend kutgan shaklda yozilgan, shuning uchun ulash
+  asosan `db.js` ni API klientiga almashtirishdan iborat.
+- **Hisobot fayllari** — `generate` amali arxivga yozuv qo'shadi, lekin XLSX/PDF
+  generatsiyasi yo'q (`apps/analytics/views.py::generate` shu joyga ulanadi).
+- **AI tahlil** — `ai-insights` qo'lda kiritiladigan ma'lumot, model yo'q.

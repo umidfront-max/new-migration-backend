@@ -144,6 +144,35 @@ class EmployerApiTests(APITestCase):
         self.assertTrue(employer.is_informal)
         self.assertEqual([c.name for c in employer.countries.all()], ["Rossiya"])
 
+    def test_export_returns_csv_with_related_countries(self) -> None:
+        """`prefetch_related` bilan eksport — chunk_size bo'lmasa 500 beradi."""
+        employer = Employer.objects.create(
+            name="Eksport MChJ", direction="Logistika", sent_count=120,
+        )
+        employer.countries.set(Country.objects.all())
+
+        response = self.client.get(reverse("employer-export"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("text/csv", response["Content-Type"])
+
+        body = response.content.decode("utf-8-sig")
+        self.assertIn("Eksport MChJ", body)
+        # Davlatlar Country.Meta.ordering bo'yicha chiqadi — tartibga bog'lanmaymiz
+        self.assertIn("Rossiya", body)
+        self.assertIn("Qozog‘iston", body)
+
+    def test_migrant_export_includes_employer_label(self) -> None:
+        region = Region.objects.create(name="Samarqand", latitude=39.6, longitude=66.9)
+        country = Country.objects.get(code="RU")
+        employer = Employer.objects.create(name="Ozon Logistics", direction="Logistika")
+        Migrant.objects.create(
+            pinfl="33333333333333", full_name="Eksport Migrant",
+            country=country, region=region, employer=employer,
+        )
+        response = self.client.get(reverse("migrant-export"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("Ozon Logistics", response.content.decode("utf-8-sig"))
+
     def test_multiple_countries_are_linked(self) -> None:
         response = self.client.post(reverse("employer-list"), {
             "name": "Ikki yo‘nalish", "dir": "Logistika",

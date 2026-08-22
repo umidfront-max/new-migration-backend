@@ -13,6 +13,8 @@ class ViolationTypeSerializer(serializers.ModelSerializer):
 
 
 class SosEventSerializer(serializers.ModelSerializer):
+    # Kod berilmasa `create()` uni o'zi qo'yadi
+    code = serializers.CharField(required=False)
     name = serializers.CharField(source="applicant_name")
     countryCode = serializers.SlugRelatedField(
         source="country", slug_field="code", queryset=Country.objects.all(),

@@ -10,6 +10,9 @@ from .services import calculate_risk_score
 class MigrantSerializer(serializers.ModelSerializer):
     """
     Davlat kodi va hudud nomi bo'yicha ishlaydi.
+
+    `employer` — matn: reyestrda shunday nomli tashkilot bo'lsa avtomatik
+    bog'lanadi, bo'lmasa erkin matn sifatida saqlanadi.
     `score` bo'sh kelsa — model o'zi hisoblaydi.
     """
 
@@ -25,7 +28,10 @@ class MigrantSerializer(serializers.ModelSerializer):
     marital = serializers.CharField(source="marital_status", required=False, allow_blank=True)
     health = serializers.CharField(source="health_status", required=False)
     convicted = serializers.BooleanField(source="is_convicted", required=False)
-    employer = serializers.CharField(source="employer_name", required=False, allow_blank=True)
+    employer = serializers.CharField(
+        source="employer_name", required=False, allow_blank=True,
+    )
+    employerId = serializers.PrimaryKeyRelatedField(source="employer", read_only=True)
     risk = serializers.CharField(source="legal_status", required=False)
     score = serializers.IntegerField(source="risk_score", required=False, allow_null=True)
     exitDate = serializers.DateField(
@@ -39,7 +45,7 @@ class MigrantSerializer(serializers.ModelSerializer):
             "id", "pinfl", "name", "nationality", "gender", "speciality",
             "countryCode", "country", "flag", "region", "purpose",
             "remit", "marital", "health", "convicted",
-            "employer", "address", "phone",
+            "employer", "employerId", "address", "phone",
             "risk", "score", "exitDate",
         ]
 
@@ -60,10 +66,18 @@ class MigrantSerializer(serializers.ModelSerializer):
         return validated
 
     def create(self, validated_data: dict) -> Migrant:
-        return super().create(self._apply_auto_score(validated_data))
+        migrant = super().create(self._apply_auto_score(validated_data))
+        migrant.link_employer()
+        migrant.save(update_fields=["employer"])
+        return migrant
 
     def update(self, instance: Migrant, validated_data: dict) -> Migrant:
-        return super().update(instance, self._apply_auto_score(validated_data, instance))
+        migrant = super().update(instance, self._apply_auto_score(validated_data, instance))
+        if "employer_name" in validated_data:
+            migrant.employer = None
+            migrant.link_employer()
+            migrant.save(update_fields=["employer"])
+        return migrant
 
 
 class EmployerSerializer(serializers.ModelSerializer):
@@ -79,12 +93,13 @@ class EmployerSerializer(serializers.ModelSerializer):
     sent = serializers.IntegerField(source="sent_count", required=False)
     remit = serializers.IntegerField(source="remittance_amount", required=False)
     formal = serializers.IntegerField(source="formal_share", read_only=True)
+    migrantCount = serializers.IntegerField(source="migrants.count", read_only=True)
 
     class Meta:
         model = Employer
         fields = [
             "id", "name", "dir", "countries", "employment",
-            "sent", "remit", "formal", "status",
+            "sent", "remit", "formal", "migrantCount", "status",
         ]
 
     def validate_countries(self, value: list) -> list:

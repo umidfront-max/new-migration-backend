@@ -1,9 +1,11 @@
 """Autentifikatsiya va foydalanuvchilarni boshqarish."""
 from django.contrib.auth import authenticate
+from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from core.permissions import IsAdministrator
@@ -13,6 +15,8 @@ from .models import AuditLogEntry, Role, SystemSetting, User
 from .serializers import (
     AuditLogEntrySerializer,
     CurrentUserSerializer,
+    ErrorResponseSerializer,
+    LoginResponseSerializer,
     LoginSerializer,
     RoleSerializer,
     SystemSettingSerializer,
@@ -32,11 +36,29 @@ def record_sign_in_attempt(login: str, ip: str, is_success: bool, reason: str = 
 
 
 class LoginView(APIView):
-    """Login va parol bo'yicha token beradi."""
+    """
+    Login va parol bo'yicha token beradi.
+
+    Parolni tanlab ko'rishga qarshi: bir IP dan daqiqada cheklangan urinish
+    (sozlamasi — `THROTTLE_SIGN_IN`, standart 10/min).
+    """
 
     permission_classes = [AllowAny]
     authentication_classes: list = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "sign-in"
+    serializer_class = LoginSerializer
 
+    @extend_schema(
+        summary="Tizimga kirish",
+        request=LoginSerializer,
+        responses={
+            200: LoginResponseSerializer,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            429: ErrorResponseSerializer,
+        },
+    )
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -78,7 +100,9 @@ class LogoutView(APIView):
     """Joriy tokenni bekor qiladi."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = None
 
+    @extend_schema(summary="Tizimdan chiqish", request=None, responses={204: None})
     def post(self, request):
         Token.objects.filter(user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -88,7 +112,9 @@ class CurrentUserView(APIView):
     """Kirgan foydalanuvchi haqidagi ma'lumot."""
 
     permission_classes = [IsAuthenticated]
+    serializer_class = CurrentUserSerializer
 
+    @extend_schema(summary="Joriy foydalanuvchi", responses={200: CurrentUserSerializer})
     def get(self, request):
         return Response(CurrentUserSerializer(request.user).data)
 

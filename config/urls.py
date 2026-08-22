@@ -6,6 +6,11 @@ Endpoint nomlari frontenddagi to'plam nomlari bilan mos keladi, shuning uchun
 """
 from django.contrib import admin
 from django.urls import include, path
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
 from rest_framework.routers import DefaultRouter
 
 from apps.accounts.views import (
@@ -90,6 +95,11 @@ auth_patterns = [
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # API hujjati
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    # API
     path("api/auth/", include((auth_patterns, "auth"))),
     path("api/dashboard/summary/", DashboardSummaryView.as_view(), name="dashboard-summary"),
     path("api/", include(router.urls)),

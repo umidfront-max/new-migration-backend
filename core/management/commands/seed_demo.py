@@ -100,8 +100,9 @@ class Command(BaseCommand):
             self.seed_districts(data["districts"], regions)
             self.seed_border(data["borderPoints"], data["borderSources"], regions)
 
-            self.seed_migrants(data["migrants"], countries, regions)
             self.seed_employers(data["employers"], countries)
+            self.seed_migrants(data["migrants"], countries, regions)
+            self.link_migrant_employers()
 
             self.seed_monitoring(data, countries)
             self.seed_analytics(data)
@@ -277,6 +278,19 @@ class Command(BaseCommand):
                     "exit_date": parse_date(row.get("exitDate")),
                 },
             )
+
+    def link_migrant_employers(self) -> None:
+        """Matndagi ish beruvchi nomini reyestrdagi tashkilotga bog'laydi."""
+        by_name = {employer.name.lower(): employer for employer in Employer.objects.all()}
+        linked = 0
+        for migrant in Migrant.objects.filter(employer__isnull=True).exclude(employer_name=""):
+            employer = by_name.get(migrant.employer_name.strip().lower())
+            if employer:
+                migrant.employer = employer
+                migrant.save(update_fields=["employer"])
+                linked += 1
+        if linked:
+            self.stdout.write(f"  ish beruvchiga bog‘landi: {linked} ta migrant")
 
     def seed_employers(self, rows: list[dict], countries: dict[str, Country]) -> None:
         for row in rows:
