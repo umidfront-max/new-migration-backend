@@ -206,6 +206,10 @@ CORS_ALLOWED_ORIGINS = env_list(
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
+if DEBUG:
+    # Dev serveri band port topolmasa boshqasiga ko'chadi — barchasiga ruxsat
+    CORS_ALLOWED_ORIGIN_REGEXES = [r"^http://(localhost|127\.0\.0\.1):\d+$"]
+
 if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
