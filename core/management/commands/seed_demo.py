@@ -425,6 +425,7 @@ class Command(BaseCommand):
                     "description": row.get("desc", ""),
                     "period": row.get("period", ReportTemplate.Period.MONTHLY),
                     "formats": row.get("fmt", "XLSX, PDF"),
+                    "dataset": row.get("dataset", "migrants"),
                     "tone": row.get("tone", "lapis"), "position": index,
                 },
             )
@@ -434,6 +435,7 @@ class Command(BaseCommand):
                 defaults={
                     "size": row.get("size", ""), "generated_on": parse_date(row.get("at")),
                     "generated_by": row.get("by", ""),
+                    "dataset": row.get("dataset", "migrants"),
                 },
             )
 

@@ -6,12 +6,20 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.geography.models import BorderPoint, Country, Region
 from apps.monitoring.models import SosEvent, ViolationType
 from apps.registry.models import Employer, Migrant
+
+DATASET_MODELS = {
+    "migrants": Migrant,
+    "employers": Employer,
+    "sos-events": SosEvent,
+}
 from core.pagination import LargePagination
+from core.reports import build_dataset_csv
 from core.viewsets import AuditedModelViewSet
 
 from .models import (
@@ -108,14 +116,19 @@ class ReportTemplateViewSet(AuditedModelViewSet):
         """
         Shablon bo'yicha hisobot shakllantiradi.
 
-        Hozircha arxivga yozuv qo'shadi — fayl generatsiyasi (XLSX/PDF)
-        keyingi bosqichda shu joyga ulanadi.
+        Arxivga yozuv qo'shiladi va uning `dataset` maydoni orqali faylni
+        `/api/report-archive/{id}/download/` dan olish mumkin.
         """
         template = self.get_object()
         today = date.today()
+        model = DATASET_MODELS.get(template.dataset, Migrant)
+        row_count = model.objects.count()
+
         entry = ReportArchiveEntry.objects.create(
             name=f"{template.name} — {today.strftime('%Y-%m-%d')}",
-            size="—",
+            dataset=template.dataset,
+            row_count=row_count,
+            size=f"{row_count} qator",
             generated_on=today,
             generated_by=getattr(request.user, "login", "tizim"),
         )
@@ -124,7 +137,7 @@ class ReportTemplateViewSet(AuditedModelViewSet):
             {
                 "template": ReportTemplateSerializer(template).data,
                 "archive": ReportArchiveEntrySerializer(entry).data,
-                "detail": "Hisobot arxivga qo‘shildi",
+                "detail": f"Hisobot shakllantirildi — {row_count} qator",
             },
             status=201,
         )
@@ -134,7 +147,21 @@ class ReportArchiveViewSet(AuditedModelViewSet):
     queryset = ReportArchiveEntry.objects.all()
     serializer_class = ReportArchiveEntrySerializer
     audit_label = "Arxiv yozuvi"
+    filterset_fields = ["dataset"]
     search_fields = ["name", "generated_by"]
+
+    @action(detail=True, methods=["get"], throttle_classes=[ScopedRateThrottle])
+    def download(self, request, pk=None):
+        """Arxiv yozuvining ma'lumotini CSV ko'rinishida beradi."""
+        entry = self.get_object()
+        response = build_dataset_csv(entry.dataset, entry.name)
+        if response is None:
+            return Response({"detail": "Bu to‘plam uchun eksport yo‘q"}, status=400)
+
+        self.write_audit("yuklab olindi")
+        return response
+
+    download.throttle_scope = "export"
 
 
 class DashboardSummaryView(APIView):

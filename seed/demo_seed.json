@@ -4069,6 +4069,7 @@
       "desc": "Barcha KPI, davlatlar va hududlar kesimi",
       "period": "Oylik",
       "fmt": "XLSX, PDF",
+      "dataset": "migrants",
       "tone": "lapis"
     },
     {
@@ -4076,6 +4077,7 @@
       "desc": "Turlar va davlatlar bo‘yicha, IIV formatida",
       "period": "Choraklik",
       "fmt": "XLSX, DOCX",
+      "dataset": "sos-events",
       "tone": "coral"
     },
     {
@@ -4083,6 +4085,7 @@
       "desc": "Murojaatlar, yordam va sertifikatlar",
       "period": "Oylik",
       "fmt": "PDF",
+      "dataset": "sos-events",
       "tone": "saffron"
     },
     {
@@ -4090,6 +4093,7 @@
       "desc": "Markaziy bank ma’lumotlari bilan solishtirma",
       "period": "Oylik",
       "fmt": "XLSX, CSV",
+      "dataset": "employers",
       "tone": "turk"
     },
     {
@@ -4097,6 +4101,7 @@
       "desc": "Bandlik va o‘qitish ko‘rsatkichlari",
       "period": "Choraklik",
       "fmt": "XLSX, PDF",
+      "dataset": "migrants",
       "tone": "violet"
     },
     {
@@ -4104,6 +4109,7 @@
       "desc": "Model natijalari va ustuvor nazorat ro‘yxati",
       "period": "Haftalik",
       "fmt": "PDF",
+      "dataset": "migrants",
       "tone": "saffron"
     }
   ],
@@ -4112,18 +4118,21 @@
       "name": "Umumiy migratsiya holati — 2026-iyul",
       "size": "4.2 MB",
       "at": "02.08.2026",
+      "dataset": "migrants",
       "by": "a.karimov"
     },
     {
       "name": "Qonunbuzilishlar — II chorak",
       "size": "1.8 MB",
       "at": "14.07.2026",
+      "dataset": "sos-events",
       "by": "sh.rasulova"
     },
     {
       "name": "Pul jo‘natmalari — 2026-iyun",
       "size": "860 KB",
       "at": "03.07.2026",
+      "dataset": "employers",
       "by": "admin.root"
     }
   ]

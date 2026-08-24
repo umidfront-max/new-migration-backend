@@ -5,7 +5,9 @@ Frontenddagi "Eksport" tugmalari shu endpointga murojaat qiladi.
 Excel'da to'g'ri ochilishi uchun UTF-8 BOM bilan yoziladi.
 """
 import csv
+import unicodedata
 from datetime import date
+from urllib.parse import quote
 
 from django.http import HttpResponse
 from rest_framework.decorators import action
@@ -13,12 +15,42 @@ from rest_framework.throttling import ScopedRateThrottle
 
 UTF8_BOM = "﻿"
 
+# O'zbek lotinidagi belgilar uchun ASCII muqobillari
+TRANSLITERATION = str.maketrans({
+    "‘": "", "’": "", "—": "-", "–": "-", "“": "", "”": "", "«": "", "»": "",
+    " ": "-", ".": "", ",": "", "/": "-", "\\": "-", ":": "", ";": "", '"': "",
+})
+
+
+def ascii_filename(name: str) -> str:
+    """
+    Sarlavhaga yoziladigan ASCII nom.
+
+    Lotin bo'lmagan belgi qolsa Django butun sarlavhani MIME-kodlab qo'yadi va
+    brauzer buzuq nom oladi — shuning uchun nom oldindan tozalanadi.
+    """
+    cleaned = unicodedata.normalize("NFKD", name.translate(TRANSLITERATION))
+    ascii_only = cleaned.encode("ascii", "ignore").decode("ascii")
+    safe = "-".join(part for part in ascii_only.split("-") if part)
+    return safe.lower() or "export"
+
 
 def build_csv_response(filename: str, headers: list[str], rows) -> HttpResponse:
-    """Sarlavha va qatorlardan CSV javob yasaydi."""
+    """
+    Sarlavha va qatorlardan CSV javob yasaydi.
+
+    `Content-Disposition` da ikki nom beriladi: eski brauzerlar uchun ASCII
+    (`filename=`) va to'liq nom uchun RFC 5987 (`filename*=`).
+    """
     stamp = date.today().isoformat()
+    full_name = f"{filename}-{stamp}.csv"
+    safe_name = f"{ascii_filename(filename)}-{stamp}.csv"
+
     response = HttpResponse(content_type="text/csv; charset=utf-8")
-    response["Content-Disposition"] = f'attachment; filename="{filename}-{stamp}.csv"'
+    response["Content-Disposition"] = (
+        f'attachment; filename="{safe_name}"; '
+        f"filename*=UTF-8''{quote(full_name)}"
+    )
     response.write(UTF8_BOM)
 
     writer = csv.writer(response, delimiter=";", quoting=csv.QUOTE_MINIMAL)

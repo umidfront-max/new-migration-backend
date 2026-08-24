@@ -179,6 +179,19 @@ class RiskWeight(OrderedModel):
         return f"{self.label} — {self.weight}%"
 
 
+class ReportDataset(models.TextChoices):
+    """
+    Hisobot qaysi ma'lumot to'plamini qamraydi.
+
+    Qiymatlar API endpointlari bilan mos — shu sababli fayl to'g'ridan-to'g'ri
+    o'sha to'plamning CSV eksportidan olinadi.
+    """
+
+    MIGRANTS = "migrants", "Migrantlar reyestri"
+    EMPLOYERS = "employers", "Ish beruvchilar"
+    SOS = "sos-events", "SOS murojaatlar"
+
+
 class ReportTemplate(OrderedModel):
     """Hisobot shabloni."""
 
@@ -195,6 +208,10 @@ class ReportTemplate(OrderedModel):
         "davriyligi", max_length=16, choices=Period.choices, default=Period.MONTHLY,
     )
     formats = models.CharField("formatlar", max_length=90, default="XLSX, PDF")
+    dataset = models.CharField(
+        "ma’lumot to‘plami", max_length=24,
+        choices=ReportDataset.choices, default=ReportDataset.MIGRANTS,
+    )
     tone = models.CharField("rangi", max_length=16, choices=TONE_CHOICES, default="lapis")
 
     class Meta(OrderedModel.Meta):
@@ -214,6 +231,11 @@ class ReportArchiveEntry(TimeStampedModel):
 
     name = models.CharField("hisobot nomi", max_length=250)
     size = models.CharField("hajmi", max_length=32, blank=True)
+    dataset = models.CharField(
+        "ma’lumot to‘plami", max_length=24,
+        choices=ReportDataset.choices, default=ReportDataset.MIGRANTS,
+    )
+    row_count = models.PositiveIntegerField("qatorlar soni", default=0)
     generated_on = models.DateField("sanasi", null=True, blank=True)
     generated_by = models.CharField("kim shakllantirgan", max_length=64, blank=True)
 

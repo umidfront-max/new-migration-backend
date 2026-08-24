@@ -89,6 +89,49 @@ class ReportTests(APITestCase):
     def test_format_list_is_split(self) -> None:
         self.assertEqual(self.template.format_list, ["XLSX", "PDF"])
 
+    def test_generate_records_dataset_and_row_count(self) -> None:
+        """Shakllantirilgan hisobot qaysi to'plamdan olinganini eslab qoladi."""
+        Country.objects.create(code="RU", name="Rossiya", latitude=55.7, longitude=37.6)
+        region = Region.objects.create(name="Samarqand", latitude=39.6, longitude=66.9)
+        Migrant.objects.create(
+            pinfl="11111111111111", full_name="A",
+            country=Country.objects.first(), region=region,
+        )
+        response = self.client.post(
+            reverse("report-template-generate", args=[self.template.pk]),
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        entry = ReportArchiveEntry.objects.first()
+        self.assertEqual(entry.dataset, "migrants")
+        self.assertEqual(entry.row_count, 1)
+        self.assertEqual(entry.size, "1 qator")
+
+    def test_archive_download_returns_csv(self) -> None:
+        Country.objects.create(code="RU", name="Rossiya", latitude=55.7, longitude=37.6)
+        region = Region.objects.create(name="Samarqand", latitude=39.6, longitude=66.9)
+        Migrant.objects.create(
+            pinfl="22222222222222", full_name="Yuklab olinadi",
+            country=Country.objects.first(), region=region,
+        )
+        entry = ReportArchiveEntry.objects.create(
+            name="Sinov hisoboti — 2026", dataset="migrants", row_count=1,
+        )
+        response = self.client.get(reverse("report-archive-download", args=[entry.pk]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("text/csv", response["Content-Type"])
+        self.assertIn("Yuklab olinadi", response.content.decode("utf-8-sig"))
+
+    def test_download_filename_header_is_ascii_safe(self) -> None:
+        """Lotin bo'lmagan belgi sarlavhani MIME-kodlanishiga olib kelmasligi kerak."""
+        entry = ReportArchiveEntry.objects.create(
+            name="Umumiy migratsiya holati — 2026-iyul", dataset="migrants",
+        )
+        response = self.client.get(reverse("report-archive-download", args=[entry.pk]))
+        disposition = response["Content-Disposition"]
+        self.assertFalse(disposition.startswith("=?"), disposition)
+        self.assertIn("filename=\"umumiy-migratsiya-holati", disposition)
+        self.assertIn("filename*=UTF-8''", disposition)
+
     def test_generate_adds_archive_entry(self) -> None:
         response = self.client.post(
             reverse("report-template-generate", args=[self.template.pk]),

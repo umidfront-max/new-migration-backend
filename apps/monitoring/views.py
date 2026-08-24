@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from core.export import CsvExportMixin
+from core.reports import SOS_EXPORT
 from core.viewsets import AuditedModelViewSet
 
 from .models import (
@@ -39,18 +40,9 @@ class SosEventViewSet(CsvExportMixin, AuditedModelViewSet):
     search_fields = ["applicant_name", "city", "event_type", "code"]
     ordering_fields = ["minutes_ago", "created_at"]
 
-    export_filename = "sos-murojaatlar"
-    export_headers = [
-        "Raqami", "Murojaatchi", "Davlat", "Shahar", "Turi",
-        "Jiddiyligi", "Necha daqiqa oldin", "Telefon", "Hal etilgan",
-    ]
-
-    def export_row(self, event: SosEvent) -> list:
-        return [
-            event.code, event.applicant_name, event.country.name, event.city,
-            event.event_type, event.get_severity_display(), event.minutes_ago,
-            event.phone, "ha" if event.is_resolved else "yo‘q",
-        ]
+    export_filename = SOS_EXPORT.filename
+    export_headers = SOS_EXPORT.headers
+    export_row = staticmethod(SOS_EXPORT.row)
 
     @action(detail=True, methods=["post"])
     def resolve(self, request, pk=None):

@@ -76,7 +76,10 @@ class ReportTemplateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReportTemplate
-        fields = ["id", "name", "desc", "period", "fmt", "formatList", "tone", "position"]
+        fields = [
+            "id", "name", "desc", "period", "fmt", "formatList",
+            "dataset", "tone", "position",
+        ]
 
 
 class ReportArchiveEntrySerializer(serializers.ModelSerializer):
@@ -85,10 +88,11 @@ class ReportArchiveEntrySerializer(serializers.ModelSerializer):
         format="%d.%m.%Y", input_formats=["%d.%m.%Y", "%Y-%m-%d"],
     )
     by = serializers.CharField(source="generated_by", required=False, allow_blank=True)
+    rows = serializers.IntegerField(source="row_count", required=False)
 
     class Meta:
         model = ReportArchiveEntry
-        fields = ["id", "name", "size", "at", "by"]
+        fields = ["id", "name", "size", "dataset", "rows", "at", "by"]
 
 
 class DashboardSummarySerializer(serializers.Serializer):

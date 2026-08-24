@@ -2,6 +2,7 @@
 from django_filters import rest_framework as filters
 
 from core.export import CsvExportMixin
+from core.reports import EMPLOYER_EXPORT, MIGRANT_EXPORT
 from core.viewsets import AuditedModelViewSet
 
 from .models import Employer, Migrant
@@ -35,22 +36,9 @@ class MigrantViewSet(CsvExportMixin, AuditedModelViewSet):
     search_fields = ["full_name", "pinfl", "phone"]
     ordering_fields = ["full_name", "risk_score", "exit_date", "created_at"]
 
-    export_filename = "migrantlar"
-    export_headers = [
-        "PINFL", "F.I.Sh", "Jinsi", "Millati", "Mutaxassisligi",
-        "Davlat", "Hudud", "Maqsad", "Ish beruvchi",
-        "Holati", "Risk ball", "Chiqish sanasi", "Telefon",
-    ]
-
-    def export_row(self, migrant: Migrant) -> list:
-        return [
-            migrant.pinfl, migrant.full_name, migrant.gender, migrant.nationality,
-            migrant.speciality, migrant.country.name, migrant.region.name,
-            migrant.purpose, migrant.employer_label, migrant.legal_status,
-            migrant.risk_score,
-            migrant.exit_date.strftime("%d.%m.%Y") if migrant.exit_date else "",
-            migrant.phone,
-        ]
+    export_filename = MIGRANT_EXPORT.filename
+    export_headers = MIGRANT_EXPORT.headers
+    export_row = staticmethod(MIGRANT_EXPORT.row)
 
 
 class EmployerViewSet(CsvExportMixin, AuditedModelViewSet):
@@ -61,16 +49,6 @@ class EmployerViewSet(CsvExportMixin, AuditedModelViewSet):
     search_fields = ["name", "direction"]
     ordering_fields = ["sent_count", "remittance_amount", "name"]
 
-    export_filename = "ish-beruvchilar"
-    export_headers = [
-        "Kompaniya", "Yo‘nalishi", "Davlatlar", "Shartnoma",
-        "Yuborilgan", "Jo‘natma (mln $)", "Holati",
-    ]
-
-    def export_row(self, employer: Employer) -> list:
-        return [
-            employer.name, employer.direction,
-            ", ".join(country.name for country in employer.countries.all()),
-            employer.employment_type, employer.sent_count,
-            employer.remittance_amount, employer.status,
-        ]
+    export_filename = EMPLOYER_EXPORT.filename
+    export_headers = EMPLOYER_EXPORT.headers
+    export_row = staticmethod(EMPLOYER_EXPORT.row)
