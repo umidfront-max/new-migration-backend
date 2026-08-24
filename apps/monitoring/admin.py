@@ -1,7 +1,21 @@
 """Django admin — monitoring."""
 from django.contrib import admin
 
-from .models import ConsulateService, ReturnProgram, SosChannel, SosEvent, ViolationType
+from .models import (
+    ConsulateCase,
+    ConsulateService,
+    ReturnProgram,
+    SosChannel,
+    SosEvent,
+    ViolationType,
+)
+
+
+@admin.register(ConsulateCase)
+class ConsulateCaseAdmin(admin.ModelAdmin):
+    list_display = ("code", "subject", "country", "stage", "created_at")
+    list_filter = ("stage", "country")
+    search_fields = ("code", "applicant_name", "subject")
 
 
 @admin.register(ViolationType)

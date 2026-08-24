@@ -17,7 +17,7 @@ class GeographyApiTests(APITestCase):
         self.client.force_authenticate(self.user)
         self.region = Region.objects.create(
             name="Toshkent viloyati", latitude=40.9, longitude=69.9,
-            departed=31200, returned=22800, risk_score=30,
+            departed=31200, returned=22800, employed=10700, risk_score=30,
         )
         self.country = Country.objects.create(
             code="RU", name="Rossiya", flag="🇷🇺", hub="Moskva",
@@ -26,17 +26,21 @@ class GeographyApiTests(APITestCase):
             medical=5100, residence=21600, travel=18500,
             wanted=1420, jailed=2840, missing=312,
             remittance_amount=4820, remittance_count=1180, risk_score=62,
+            consulate_requests=10040, consulate_helped=8170, violation_count=8160,
         )
 
     def test_country_exposes_all_indicators(self) -> None:
         response = self.client.get(reverse("country-detail", args=["RU"]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         for field in ("work", "study", "medical", "residence", "travel",
-                      "wanted", "jailed", "missing", "remit", "remitCount", "risk"):
+                      "wanted", "jailed", "missing", "remit", "remitCount", "risk",
+                      "consulateRequests", "consulateHelped", "violationCount"):
             self.assertIn(field, response.data, f"{field} maydoni yo‘q")
         self.assertEqual(response.data["work"], 214800)
         self.assertEqual(response.data["jailed"], 2840)
         self.assertEqual(response.data["remitCount"], 1180)
+        self.assertEqual(response.data["consulateRequests"], 10040)
+        self.assertEqual(response.data["violationCount"], 8160)
 
     def test_country_lookup_is_by_iso_code(self) -> None:
         response = self.client.get(reverse("country-detail", args=["RU"]))
@@ -102,3 +106,22 @@ class GeographyApiTests(APITestCase):
         District.objects.create(region=self.region, name="Qibray")
         response = self.client.get(reverse("region-list"), {"search": "Toshkent"})
         self.assertEqual(response.data["results"][0]["districtCount"], 2)
+
+
+class RegionEmployedTests(APITestCase):
+    """Hududdagi bandlik ko'rsatkichi API'da ko'rinishi kerak."""
+
+    def setUp(self) -> None:
+        role = Role.objects.create(name="Super administrator")
+        self.client.force_authenticate(
+            User.objects.create_user("a.test", "kuchli-parol-123",
+                                     full_name="A", role=role),
+        )
+
+    def test_employed_is_exposed(self) -> None:
+        response = self.client.post(reverse("region-list"), {
+            "name": "Samarqand", "lat": 39.65, "lng": 66.96,
+            "out": 68400, "back": 41200, "employed": 19400, "risk": 47,
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(response.data["employed"], 19400)

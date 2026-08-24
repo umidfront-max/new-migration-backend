@@ -42,6 +42,7 @@ from apps.geography.views import (
     RegionViewSet,
 )
 from apps.monitoring.views import (
+    ConsulateCaseViewSet,
     ConsulateServiceViewSet,
     ReturnProgramViewSet,
     SosChannelViewSet,
@@ -74,6 +75,7 @@ router.register("violations", ViolationTypeViewSet, basename="violation")
 router.register("sos-events", SosEventViewSet, basename="sos-event")
 router.register("sos-channels", SosChannelViewSet, basename="sos-channel")
 router.register("consulate-services", ConsulateServiceViewSet, basename="consulate-service")
+router.register("consulate-cases", ConsulateCaseViewSet, basename="consulate-case")
 router.register("return-programs", ReturnProgramViewSet, basename="return-program")
 
 # analitika

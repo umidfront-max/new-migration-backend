@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 from apps.accounts.models import AuditLogEntry, Role, User
 from apps.geography.models import Country
 
-from .models import ReturnProgram, SosEvent, ViolationType
+from .models import ConsulateCase, ReturnProgram, SosEvent, ViolationType
 
 
 class SosEventTests(APITestCase):
@@ -134,3 +134,41 @@ class MonitoringModelTests(APITestCase):
             "key": "deport", "label": "Takror",
         }, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ConsulateCaseTests(APITestCase):
+    """Konsullik ish oynasi — kanban bosqichlari."""
+
+    def setUp(self) -> None:
+        role = Role.objects.create(name="Super administrator")
+        self.client.force_authenticate(
+            User.objects.create_user("konsul.test", "kuchli-parol-123",
+                                     full_name="Konsul", role=role),
+        )
+        self.country = Country.objects.create(
+            code="TR", name="Turkiya", latitude=41.0, longitude=28.9,
+        )
+
+    def test_code_is_generated_when_omitted(self) -> None:
+        response = self.client.post(reverse("consulate-case-list"), {
+            "countryCode": "TR", "subject": "Pasport yo‘qolgan", "stage": "new",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertTrue(response.data["code"].startswith("CN-"))
+        self.assertEqual(response.data["country"], "Turkiya")
+        self.assertEqual(response.data["stageLabel"], "Yangi murojaatlar")
+
+    def test_cases_filter_by_stage(self) -> None:
+        for stage in ("new", "new", "review", "closed"):
+            ConsulateCase.objects.create(
+                code=f"CN-{stage}-{ConsulateCase.objects.count()}",
+                country=self.country, subject="Ariza", stage=stage,
+            )
+        response = self.client.get(reverse("consulate-case-list"), {"stage": "new"})
+        self.assertEqual(response.data["count"], 2)
+
+    def test_open_property(self) -> None:
+        opened = ConsulateCase(stage=ConsulateCase.Stage.REVIEW)
+        closed = ConsulateCase(stage=ConsulateCase.Stage.CLOSED)
+        self.assertTrue(opened.is_open)
+        self.assertFalse(closed.is_open)

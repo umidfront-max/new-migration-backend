@@ -3,7 +3,14 @@ from rest_framework import serializers
 
 from apps.geography.models import Country
 
-from .models import ConsulateService, ReturnProgram, SosChannel, SosEvent, ViolationType
+from .models import (
+    ConsulateCase,
+    ConsulateService,
+    ReturnProgram,
+    SosChannel,
+    SosEvent,
+    ViolationType,
+)
 
 
 class ViolationTypeSerializer(serializers.ModelSerializer):
@@ -43,6 +50,30 @@ class SosEventSerializer(serializers.ModelSerializer):
             validated_data["latitude"] = country.latitude
         if validated_data.get("longitude") is None and country:
             validated_data["longitude"] = country.longitude
+        return super().create(validated_data)
+
+
+class ConsulateCaseSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="applicant_name", required=False, allow_blank=True)
+    countryCode = serializers.SlugRelatedField(
+        source="country", slug_field="code", queryset=Country.objects.all(),
+    )
+    country = serializers.CharField(source="country.name", read_only=True)
+    flag = serializers.CharField(source="country.flag", read_only=True)
+    stageLabel = serializers.CharField(source="get_stage_display", read_only=True)
+
+    class Meta:
+        model = ConsulateCase
+        fields = [
+            "id", "code", "name", "countryCode", "country", "flag",
+            "subject", "stage", "stageLabel",
+        ]
+        extra_kwargs = {"code": {"required": False}}
+
+    def create(self, validated_data: dict) -> ConsulateCase:
+        """Raqam berilmasa avtomatik qo'yiladi."""
+        if not validated_data.get("code"):
+            validated_data["code"] = f"CN-{ConsulateCase.objects.count() + 4820}"
         return super().create(validated_data)
 
 

@@ -37,6 +37,11 @@ class Country(TimeStampedModel):
     remittance_count = models.PositiveIntegerField("jo‘natmalar soni, ming", default=0)
     risk_score = models.PositiveSmallIntegerField("xavf indeksi", default=0)
 
+    # konsullik va huquqbuzarlik statistikasi
+    consulate_requests = models.PositiveIntegerField("konsullikka murojaatlar", default=0)
+    consulate_helped = models.PositiveIntegerField("yordam ko‘rsatilgan", default=0)
+    violation_count = models.PositiveIntegerField("qonunbuzilish holatlari", default=0)
+
     class Meta:
         verbose_name = "davlat"
         verbose_name_plural = "davlatlar"
@@ -59,6 +64,7 @@ class Region(TimeStampedModel):
     longitude = models.FloatField("uzunligi")
     departed = models.PositiveIntegerField("chiqqanlar", default=0)
     returned = models.PositiveIntegerField("qaytganlar", default=0)
+    employed = models.PositiveIntegerField("ish bilan ta’minlangan", default=0)
     risk_score = models.PositiveSmallIntegerField("xavf darajasi", default=0)
 
     class Meta:

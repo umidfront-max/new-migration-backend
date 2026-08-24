@@ -160,7 +160,10 @@
       "residence": 21600,
       "travel": 18500,
       "jailed": 2840,
-      "remitCount": 1180
+      "remitCount": 1180,
+      "consulateRequests": 10040,
+      "consulateHelped": 8170,
+      "violationCount": 8160
     },
     {
       "code": "KZ",
@@ -184,7 +187,10 @@
       "residence": 5200,
       "travel": 4400,
       "jailed": 310,
-      "remitCount": 248
+      "remitCount": 248,
+      "consulateRequests": 1820,
+      "consulateHelped": 1480,
+      "violationCount": 906
     },
     {
       "code": "TR",
@@ -208,7 +214,10 @@
       "residence": 2900,
       "travel": 2500,
       "jailed": 520,
-      "remitCount": 196
+      "remitCount": 196,
+      "consulateRequests": 1580,
+      "consulateHelped": 1286,
+      "violationCount": 1118
     },
     {
       "code": "KR",
@@ -232,7 +241,10 @@
       "residence": 1100,
       "travel": 920,
       "jailed": 74,
-      "remitCount": 164
+      "remitCount": 164,
+      "consulateRequests": 782,
+      "consulateHelped": 637,
+      "violationCount": 246
     },
     {
       "code": "AE",
@@ -256,7 +268,10 @@
       "residence": 1400,
       "travel": 1060,
       "jailed": 118,
-      "remitCount": 132
+      "remitCount": 132,
+      "consulateRequests": 634,
+      "consulateHelped": 516,
+      "violationCount": 258
     },
     {
       "code": "KG",
@@ -280,7 +295,10 @@
       "residence": 1300,
       "travel": 960,
       "jailed": 58,
-      "remitCount": 61
+      "remitCount": 61,
+      "consulateRequests": 434,
+      "consulateHelped": 353,
+      "violationCount": 154
     },
     {
       "code": "DE",
@@ -304,7 +322,10 @@
       "residence": 980,
       "travel": 440,
       "jailed": 41,
-      "remitCount": 74
+      "remitCount": 74,
+      "consulateRequests": 325,
+      "consulateHelped": 265,
+      "violationCount": 90
     },
     {
       "code": "PL",
@@ -328,7 +349,10 @@
       "residence": 880,
       "travel": 430,
       "jailed": 63,
-      "remitCount": 58
+      "remitCount": 58,
+      "consulateRequests": 296,
+      "consulateHelped": 241,
+      "violationCount": 112
     },
     {
       "code": "SA",
@@ -352,7 +376,10 @@
       "residence": 740,
       "travel": 510,
       "jailed": 96,
-      "remitCount": 44
+      "remitCount": 44,
+      "consulateRequests": 242,
+      "consulateHelped": 197,
+      "violationCount": 140
     },
     {
       "code": "JP",
@@ -376,7 +403,10 @@
       "residence": 340,
       "travel": 180,
       "jailed": 14,
-      "remitCount": 38
+      "remitCount": 38,
+      "consulateRequests": 167,
+      "consulateHelped": 136,
+      "violationCount": 39
     },
     {
       "code": "US",
@@ -400,7 +430,10 @@
       "residence": 560,
       "travel": 140,
       "jailed": 21,
-      "remitCount": 31
+      "remitCount": 31,
+      "consulateRequests": 137,
+      "consulateHelped": 112,
+      "violationCount": 40
     },
     {
       "code": "GB",
@@ -424,7 +457,10 @@
       "residence": 310,
       "travel": 100,
       "jailed": 18,
-      "remitCount": 24
+      "remitCount": 24,
+      "consulateRequests": 101,
+      "consulateHelped": 82,
+      "violationCount": 33
     }
   ],
   "regions": [
@@ -434,7 +470,8 @@
       "lng": 66.96,
       "out": 68400,
       "back": 41200,
-      "risk": 47
+      "risk": 47,
+      "employed": 19400
     },
     {
       "name": "Farg‘ona",
@@ -442,7 +479,8 @@
       "lng": 71.78,
       "out": 64100,
       "back": 39800,
-      "risk": 52
+      "risk": 52,
+      "employed": 18700
     },
     {
       "name": "Andijon",
@@ -450,7 +488,8 @@
       "lng": 72.34,
       "out": 58900,
       "back": 36400,
-      "risk": 55
+      "risk": 55,
+      "employed": 17100
     },
     {
       "name": "Namangan",
@@ -458,7 +497,8 @@
       "lng": 71.67,
       "out": 54200,
       "back": 33100,
-      "risk": 58
+      "risk": 58,
+      "employed": 15600
     },
     {
       "name": "Qashqadaryo",
@@ -466,7 +506,8 @@
       "lng": 65.79,
       "out": 47600,
       "back": 28900,
-      "risk": 41
+      "risk": 41,
+      "employed": 13600
     },
     {
       "name": "Surxondaryo",
@@ -474,7 +515,8 @@
       "lng": 67.28,
       "out": 41300,
       "back": 25700,
-      "risk": 49
+      "risk": 49,
+      "employed": 12100
     },
     {
       "name": "Buxoro",
@@ -482,7 +524,8 @@
       "lng": 64.42,
       "out": 32800,
       "back": 21400,
-      "risk": 34
+      "risk": 34,
+      "employed": 10100
     },
     {
       "name": "Toshkent viloyati",
@@ -490,7 +533,8 @@
       "lng": 69.9,
       "out": 31200,
       "back": 22800,
-      "risk": 30
+      "risk": 30,
+      "employed": 10700
     },
     {
       "name": "Jizzax",
@@ -498,7 +542,8 @@
       "lng": 67.84,
       "out": 24600,
       "back": 15900,
-      "risk": 38
+      "risk": 38,
+      "employed": 7500
     },
     {
       "name": "Xorazm",
@@ -506,7 +551,8 @@
       "lng": 60.63,
       "out": 23100,
       "back": 14700,
-      "risk": 36
+      "risk": 36,
+      "employed": 6900
     },
     {
       "name": "Navoiy",
@@ -514,7 +560,8 @@
       "lng": 65.37,
       "out": 18400,
       "back": 12100,
-      "risk": 26
+      "risk": 26,
+      "employed": 5700
     },
     {
       "name": "Sirdaryo",
@@ -522,7 +569,8 @@
       "lng": 68.78,
       "out": 14900,
       "back": 9800,
-      "risk": 29
+      "risk": 29,
+      "employed": 4600
     },
     {
       "name": "Qoraqalpog‘iston",
@@ -530,7 +578,8 @@
       "lng": 59.61,
       "out": 13800,
       "back": 8400,
-      "risk": 44
+      "risk": 44,
+      "employed": 3900
     },
     {
       "name": "Toshkent shahri",
@@ -538,7 +587,8 @@
       "lng": 69.24,
       "out": 12900,
       "back": 10600,
-      "risk": 22
+      "risk": 22,
+      "employed": 5000
     }
   ],
   "districts": [
@@ -3302,6 +3352,218 @@
       "label": "Tarjima va notarial",
       "value": 1380,
       "tone": "violet"
+    }
+  ],
+  "consulateCases": [
+    {
+      "code": "CN-4820",
+      "name": "Yusupova Kamola",
+      "countryCode": "KR",
+      "subject": "Pasport yo‘qolgan",
+      "stage": "new"
+    },
+    {
+      "code": "CN-4821",
+      "name": "To‘xtayeva Malika",
+      "countryCode": "DE",
+      "subject": "Ish haqi to‘lanmagan",
+      "stage": "new"
+    },
+    {
+      "code": "CN-4822",
+      "name": "Rahmonov Otabek",
+      "countryCode": "JP",
+      "subject": "Tibbiy yordam",
+      "stage": "new"
+    },
+    {
+      "code": "CN-4823",
+      "name": "Ergasheva Malika",
+      "countryCode": "GB",
+      "subject": "Qaytish yo‘llanmasi",
+      "stage": "new"
+    },
+    {
+      "code": "CN-4824",
+      "name": "Qodirov Sardor",
+      "countryCode": "US",
+      "subject": "Hujjat tasdiqlash",
+      "stage": "new"
+    },
+    {
+      "code": "CN-4825",
+      "name": "Rahmonov Rustam",
+      "countryCode": "JP",
+      "subject": "Notarial ariza",
+      "stage": "new"
+    },
+    {
+      "code": "CN-4826",
+      "name": "Salimov Otabek",
+      "countryCode": "JP",
+      "subject": "Pasport yo‘qolgan",
+      "stage": "new"
+    },
+    {
+      "code": "CN-4827",
+      "name": "Rahmonov Anvar",
+      "countryCode": "DE",
+      "subject": "Ish haqi to‘lanmagan",
+      "stage": "new"
+    },
+    {
+      "code": "CN-4880",
+      "name": "Rahmonov Bekzod",
+      "countryCode": "SA",
+      "subject": "Ish haqi to‘lanmagan",
+      "stage": "review"
+    },
+    {
+      "code": "CN-4881",
+      "name": "Rahmonov Otabek",
+      "countryCode": "PL",
+      "subject": "Tibbiy yordam",
+      "stage": "review"
+    },
+    {
+      "code": "CN-4882",
+      "name": "Qodirov Aziz",
+      "countryCode": "KR",
+      "subject": "Qaytish yo‘llanmasi",
+      "stage": "review"
+    },
+    {
+      "code": "CN-4883",
+      "name": "Abdullayev Jasur",
+      "countryCode": "TR",
+      "subject": "Hujjat tasdiqlash",
+      "stage": "review"
+    },
+    {
+      "code": "CN-4884",
+      "name": "Qodirov Sardor",
+      "countryCode": "KZ",
+      "subject": "Notarial ariza",
+      "stage": "review"
+    },
+    {
+      "code": "CN-4885",
+      "name": "Salimov Bekzod",
+      "countryCode": "TR",
+      "subject": "Pasport yo‘qolgan",
+      "stage": "review"
+    },
+    {
+      "code": "CN-4886",
+      "name": "To‘xtayev Aziz",
+      "countryCode": "GB",
+      "subject": "Ish haqi to‘lanmagan",
+      "stage": "review"
+    },
+    {
+      "code": "CN-4887",
+      "name": "Ismoilov Aziz",
+      "countryCode": "PL",
+      "subject": "Tibbiy yordam",
+      "stage": "review"
+    },
+    {
+      "code": "CN-4940",
+      "name": "Qodirova Feruza",
+      "countryCode": "KZ",
+      "subject": "Tibbiy yordam",
+      "stage": "waiting"
+    },
+    {
+      "code": "CN-4941",
+      "name": "Nazarov Shoxrux",
+      "countryCode": "GB",
+      "subject": "Qaytish yo‘llanmasi",
+      "stage": "waiting"
+    },
+    {
+      "code": "CN-4942",
+      "name": "Abdullayev Sardor",
+      "countryCode": "GB",
+      "subject": "Hujjat tasdiqlash",
+      "stage": "waiting"
+    },
+    {
+      "code": "CN-4943",
+      "name": "Karimova Munisa",
+      "countryCode": "TR",
+      "subject": "Notarial ariza",
+      "stage": "waiting"
+    },
+    {
+      "code": "CN-4944",
+      "name": "Salimova Munisa",
+      "countryCode": "US",
+      "subject": "Pasport yo‘qolgan",
+      "stage": "waiting"
+    },
+    {
+      "code": "CN-4945",
+      "name": "Abdullayev Ulug‘bek",
+      "countryCode": "AE",
+      "subject": "Ish haqi to‘lanmagan",
+      "stage": "waiting"
+    },
+    {
+      "code": "CN-4946",
+      "name": "Qodirov Anvar",
+      "countryCode": "US",
+      "subject": "Tibbiy yordam",
+      "stage": "waiting"
+    },
+    {
+      "code": "CN-4947",
+      "name": "Ismoilov Otabek",
+      "countryCode": "KZ",
+      "subject": "Qaytish yo‘llanmasi",
+      "stage": "waiting"
+    },
+    {
+      "code": "CN-5000",
+      "name": "Nazarov Sardor",
+      "countryCode": "US",
+      "subject": "Qaytish yo‘llanmasi",
+      "stage": "closed"
+    },
+    {
+      "code": "CN-5001",
+      "name": "Salimova Gulnora",
+      "countryCode": "US",
+      "subject": "Hujjat tasdiqlash",
+      "stage": "closed"
+    },
+    {
+      "code": "CN-5002",
+      "name": "Nazarov Aziz",
+      "countryCode": "SA",
+      "subject": "Notarial ariza",
+      "stage": "closed"
+    },
+    {
+      "code": "CN-5003",
+      "name": "Rahmonov Bekzod",
+      "countryCode": "GB",
+      "subject": "Pasport yo‘qolgan",
+      "stage": "closed"
+    },
+    {
+      "code": "CN-5004",
+      "name": "Ergasheva Feruza",
+      "countryCode": "AE",
+      "subject": "Ish haqi to‘lanmagan",
+      "stage": "closed"
+    },
+    {
+      "code": "CN-5005",
+      "name": "Salimov Doniyor",
+      "countryCode": "AE",
+      "subject": "Tibbiy yordam",
+      "stage": "closed"
     }
   ],
   "returnPrograms": [

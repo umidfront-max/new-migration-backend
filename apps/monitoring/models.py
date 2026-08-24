@@ -74,6 +74,44 @@ class SosEvent(TimeStampedModel):
         return self.severity in {self.Severity.CRITICAL, self.Severity.HIGH}
 
 
+class ConsulateCase(TimeStampedModel):
+    """
+    Konsullik ish oynasidagi murojaat.
+
+    Frontenddagi kanban ustunlari shu modelning `stage` maydoni bo'yicha
+    to'ldiriladi — ilgari ustunlar qo'lda yozilgan sonlar edi.
+    """
+
+    class Stage(models.TextChoices):
+        NEW = "new", "Yangi murojaatlar"
+        REVIEW = "review", "Ko‘rib chiqilmoqda"
+        WAITING = "waiting", "Hujjat kutilmoqda"
+        CLOSED = "closed", "Yopilgan"
+
+    code = models.CharField("ish raqami", max_length=24, unique=True)
+    applicant_name = models.CharField("murojaatchi", max_length=180, blank=True)
+    country = models.ForeignKey(
+        Country, verbose_name="davlat", on_delete=models.PROTECT,
+        related_name="consulate_cases",
+    )
+    subject = models.CharField("murojaat mavzusi", max_length=180)
+    stage = models.CharField(
+        "bosqichi", max_length=16, choices=Stage.choices, default=Stage.NEW, db_index=True,
+    )
+
+    class Meta:
+        verbose_name = "konsullik ishi"
+        verbose_name_plural = "konsullik ishlari"
+        ordering = ["stage", "-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.code} — {self.subject}"
+
+    @property
+    def is_open(self) -> bool:
+        return self.stage != self.Stage.CLOSED
+
+
 class SosChannel(OrderedModel):
     """Murojaat kelgan kanal va uning ulushi."""
 

@@ -69,6 +69,7 @@ const payload = {
   sosEvents: mock.sosEvents,
   sosChannels: mock.sosChannels,
   consulateServices: mock.consulateServices,
+  consulateCases: mock.consulateCases,
   returnPrograms: mock.returnPrograms,
 
   metrics: {

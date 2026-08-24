@@ -14,6 +14,9 @@ class CountrySerializer(serializers.ModelSerializer):
     remit = serializers.IntegerField(source="remittance_amount", required=False)
     remitCount = serializers.IntegerField(source="remittance_count", required=False)
     risk = serializers.IntegerField(source="risk_score", required=False)
+    consulateRequests = serializers.IntegerField(source="consulate_requests", required=False)
+    consulateHelped = serializers.IntegerField(source="consulate_helped", required=False)
+    violationCount = serializers.IntegerField(source="violation_count", required=False)
 
     class Meta:
         model = Country
@@ -23,6 +26,7 @@ class CountrySerializer(serializers.ModelSerializer):
             "work", "study", "medical", "residence", "travel",
             "wanted", "jailed", "missing",
             "remit", "remitCount", "risk",
+            "consulateRequests", "consulateHelped", "violationCount",
         ]
 
     def validate_code(self, value: str) -> str:
@@ -34,12 +38,15 @@ class RegionSerializer(serializers.ModelSerializer):
     lng = serializers.FloatField(source="longitude")
     out = serializers.IntegerField(source="departed", required=False)
     back = serializers.IntegerField(source="returned", required=False)
+    employed = serializers.IntegerField(required=False)
     risk = serializers.IntegerField(source="risk_score", required=False)
     districtCount = serializers.IntegerField(source="districts.count", read_only=True)
 
     class Meta:
         model = Region
-        fields = ["id", "name", "lat", "lng", "out", "back", "risk", "districtCount"]
+        fields = [
+            "id", "name", "lat", "lng", "out", "back", "employed", "risk", "districtCount",
+        ]
 
 
 class DistrictSerializer(serializers.ModelSerializer):

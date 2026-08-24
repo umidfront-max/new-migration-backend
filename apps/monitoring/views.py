@@ -5,8 +5,16 @@ from rest_framework.response import Response
 from core.export import CsvExportMixin
 from core.viewsets import AuditedModelViewSet
 
-from .models import ConsulateService, ReturnProgram, SosChannel, SosEvent, ViolationType
+from .models import (
+    ConsulateCase,
+    ConsulateService,
+    ReturnProgram,
+    SosChannel,
+    SosEvent,
+    ViolationType,
+)
 from .serializers import (
+    ConsulateCaseSerializer,
     ConsulateServiceSerializer,
     ReturnProgramSerializer,
     SosChannelSerializer,
@@ -69,6 +77,15 @@ class SosChannelViewSet(AuditedModelViewSet):
     queryset = SosChannel.objects.all()
     serializer_class = SosChannelSerializer
     audit_label = "SOS kanali"
+
+
+class ConsulateCaseViewSet(AuditedModelViewSet):
+    queryset = ConsulateCase.objects.select_related("country").all()
+    serializer_class = ConsulateCaseSerializer
+    audit_label = "Konsullik ishi"
+    filterset_fields = ["stage", "country__code"]
+    search_fields = ["code", "applicant_name", "subject"]
+    ordering_fields = ["created_at", "stage"]
 
 
 class ConsulateServiceViewSet(AuditedModelViewSet):

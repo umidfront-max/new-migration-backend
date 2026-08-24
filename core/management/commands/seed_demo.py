@@ -31,6 +31,7 @@ from apps.analytics.models import (
 )
 from apps.geography.models import BorderPoint, BorderSource, Country, District, Region
 from apps.monitoring.models import (
+    ConsulateCase,
     ConsulateService,
     ReturnProgram,
     SosChannel,
@@ -44,7 +45,7 @@ DEFAULT_PASSWORD = "demo"
 # --flush bilan tozalanadigan modellar (bog'liqlik tartibida)
 CLEARED_MODELS = [
     AuditLogEntry, Migrant, Employer, SosEvent, SosChannel,
-    ConsulateService, ReturnProgram, ViolationType,
+    ConsulateCase, ConsulateService, ReturnProgram, ViolationType,
     BorderPoint, BorderSource, District, Region, Country,
     MetricTile, ShareSlice, TimeSeries, AiInsight, AiSuggestion,
     Integration, RiskWeight, ReportTemplate, ReportArchiveEntry,
@@ -192,6 +193,9 @@ class Command(BaseCommand):
                     "remittance_amount": row.get("remit", 0),
                     "remittance_count": row.get("remitCount", 0),
                     "risk_score": row.get("risk", 0),
+                    "consulate_requests": row.get("consulateRequests", 0),
+                    "consulate_helped": row.get("consulateHelped", 0),
+                    "violation_count": row.get("violationCount", 0),
                 },
             )
             result[country.code] = country
@@ -208,6 +212,7 @@ class Command(BaseCommand):
                     "longitude": row["lng"],
                     "departed": row.get("out", 0),
                     "returned": row.get("back", 0),
+                    "employed": row.get("employed", 0),
                     "risk_score": row.get("risk", 0),
                 },
             )
@@ -338,6 +343,18 @@ class Command(BaseCommand):
                 defaults={"share": row.get("share", 0), "icon": row.get("icon", "phone"),
                           "position": index},
             )
+        for row in data.get("consulateCases", []):
+            country = countries.get(row.get("countryCode", ""))
+            if country is None:
+                continue
+            ConsulateCase.objects.update_or_create(
+                code=row["code"],
+                defaults={
+                    "applicant_name": row.get("name", ""), "country": country,
+                    "subject": row.get("subject", ""),
+                    "stage": row.get("stage", ConsulateCase.Stage.NEW),
+                },
+            )
         for index, row in enumerate(data["consulateServices"]):
             ConsulateService.objects.update_or_create(
                 label=row["label"],
@@ -432,6 +449,7 @@ class Command(BaseCommand):
             ("Migrantlar", Migrant.objects.count()),
             ("Ish beruvchilar", Employer.objects.count()),
             ("SOS murojaatlar", SosEvent.objects.count()),
+            ("Konsullik ishlari", ConsulateCase.objects.count()),
             ("Ko‘rsatkichlar", MetricTile.objects.count()),
             ("Grafik qatorlari", TimeSeries.objects.count()),
         ]
