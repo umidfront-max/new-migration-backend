@@ -143,6 +143,35 @@ class MigrantApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertIsNone(response.data["district"])
 
+    def test_district_required_when_region_has_districts(self) -> None:
+        District.objects.create(region=self.region, name="Zangiota")
+        response = self.client.post(reverse("migrant-list"), self.payload(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("district", response.data)
+
+    def test_sent_count_follows_linked_migrants(self) -> None:
+        first = Employer.objects.create(name="Birinchi MChJ", direction="IT", sent_count=999)
+        second = Employer.objects.create(name="Ikkinchi MChJ", direction="IT")
+        response = self.client.post(
+            reverse("migrant-list"), self.payload(employer="Birinchi MChJ"), format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        first.refresh_from_db()
+        self.assertEqual(first.sent_count, 1)
+
+        migrant_id = response.data["id"]
+        self.client.patch(
+            reverse("migrant-detail", args=[migrant_id]), {"employer": "Ikkinchi MChJ"},
+            format="json",
+        )
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual((first.sent_count, second.sent_count), (0, 1))
+
+        self.client.delete(reverse("migrant-detail", args=[migrant_id]))
+        second.refresh_from_db()
+        self.assertEqual(second.sent_count, 0)
+
     def test_district_filter(self) -> None:
         zangiota = District.objects.create(region=self.region, name="Zangiota")
         Migrant.objects.create(

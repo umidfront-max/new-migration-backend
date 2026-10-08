@@ -51,6 +51,28 @@ class Employer(TimeStampedModel):
     def is_informal(self) -> bool:
         return self.employment_type == self.Employment.INFORMAL
 
+    @classmethod
+    def recount_sent(cls, ids=None) -> None:
+        """
+        "Yuborilgan migrantlar" — reyestrda shu tashkilotga bog'langan migrantlar
+        soni. Qo'lda kiritilmaydi: migrant qo'shilganda, o'chirilganda yoki ish
+        beruvchisi almashganda qayta hisoblanadi. `ids=None` — barcha tashkilot.
+        """
+        queryset = cls.objects.all()
+        if ids is not None:
+            ids = [pk for pk in ids if pk]
+            if not ids:
+                return
+            queryset = queryset.filter(pk__in=ids)
+        counts = dict(
+            Migrant.objects.filter(employer__in=queryset)
+            .values_list("employer").annotate(total=models.Count("id"))
+        )
+        for employer in queryset.only("id", "sent_count"):
+            total = counts.get(employer.pk, 0)
+            if employer.sent_count != total:
+                cls.objects.filter(pk=employer.pk).update(sent_count=total)
+
 
 class Migrant(TimeStampedModel):
     """Reyestrdagi shaxs."""

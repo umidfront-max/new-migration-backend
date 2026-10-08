@@ -60,6 +60,7 @@ class MigrantSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs: dict) -> dict:
         region = attrs["region"] if "region" in attrs else getattr(self.instance, "region", None)
+        touched = self.instance is None or "region" in attrs or "district" in attrs
 
         if "district" in attrs:
             name = (attrs.pop("district") or "").strip()
@@ -78,6 +79,11 @@ class MigrantSerializer(serializers.ModelSerializer):
             # Viloyat almashdi, tuman yuborilmadi — eski tuman endi mos emas
             if self.instance.district.region_id != getattr(region, "id", None):
                 attrs["district"] = None
+
+        # Hududning tumanlari bor bo'lsa — chiqqan tuman ham ko'rsatilishi shart
+        district = attrs["district"] if "district" in attrs else getattr(self.instance, "district", None)
+        if touched and region is not None and district is None and region.districts.exists():
+            raise serializers.ValidationError({"district": "Chiqqan tumanni tanlang"})
 
         return attrs
 
