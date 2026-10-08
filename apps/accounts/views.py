@@ -129,11 +129,11 @@ class RoleViewSet(AuditedModelViewSet):
 
 
 class UserViewSet(AuditedModelViewSet):
-    queryset = User.objects.select_related("role").all()
+    queryset = User.objects.select_related("role", "region", "district").all()
     serializer_class = UserSerializer
     permission_classes = [IsAdministrator]
     audit_label = "Foydalanuvchi"
-    filterset_fields = ["status", "role__name"]
+    filterset_fields = ["status", "role__name", "region__name"]
     search_fields = ["login", "full_name", "unit"]
     ordering_fields = ["full_name", "login", "date_joined"]
 

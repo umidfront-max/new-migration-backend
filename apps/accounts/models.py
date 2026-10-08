@@ -1,5 +1,6 @@
 """Foydalanuvchilar, rollar, audit jurnali va tizim sozlamalari."""
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from core.models import OrderedModel, TimeStampedModel
@@ -76,6 +77,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True, blank=True, related_name="users",
     )
     unit = models.CharField("tashkilot / bo‘lim", max_length=180, blank=True)
+    # Biriktirilgan hudud: ikkalasi bo'sh — respublika, faqat viloyat — butun
+    # viloyat, tuman ham bo'lsa — faqat shu tuman. Tuman viloyatga tegishli bo'ladi.
+    region = models.ForeignKey(
+        "geography.Region", verbose_name="viloyat", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="users",
+    )
+    district = models.ForeignKey(
+        "geography.District", verbose_name="tuman", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="users",
+    )
     phone = models.CharField("telefon", max_length=32, blank=True)
     status = models.CharField(
         "holati", max_length=16, choices=Status.choices, default=Status.ACTIVE,
@@ -96,6 +107,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self) -> str:
         return f"{self.full_name} ({self.login})"
+
+    def clean(self) -> None:
+        """Tuman biriktirilgan viloyatga tegishli bo'lishi kerak (admin panel uchun)."""
+        super().clean()
+        if self.district_id and self.district.region_id != self.region_id:
+            raise ValidationError({"district": "Tuman tanlangan viloyatga tegishli emas"})
 
     @property
     def is_blocked(self) -> bool:

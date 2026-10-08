@@ -7,6 +7,8 @@ shuning uchun `src/stores/db.js` ni API ga o'tkazishda qayta nomlash kerak emas.
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
+from apps.geography.models import District, Region
+
 from .models import AuditLogEntry, Role, SystemSetting, User
 
 
@@ -20,22 +22,59 @@ class RoleSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Rol nomi bilan ishlaydi — frontend rol nomini yuboradi."""
+    """
+    Rol, viloyat va tuman nomi bilan ishlaydi — frontend nomlarni yuboradi.
+
+    Tuman nomi faqat viloyat ichida noyob, shuning uchun u tanlangan viloyat
+    ichidan qidiriladi. Viloyat almashsa, eski viloyatdagi tuman tozalanadi.
+    """
 
     name = serializers.CharField(source="full_name")
     role = serializers.SlugRelatedField(
         slug_field="name", queryset=Role.objects.all(), allow_null=True, required=False,
     )
+    region = serializers.SlugRelatedField(
+        slug_field="name", queryset=Region.objects.all(), allow_null=True, required=False,
+    )
+    district = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     hasPassword = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
-            "id", "login", "name", "role", "unit", "phone",
+            "id", "login", "name", "role", "region", "district", "unit", "phone",
             "status", "password", "hasPassword", "date_joined",
         ]
         read_only_fields = ["date_joined"]
+
+    def to_representation(self, user: User) -> dict:
+        data = super().to_representation(user)
+        data["district"] = user.district.name if user.district_id else None
+        return data
+
+    def validate(self, attrs: dict) -> dict:
+        region = attrs["region"] if "region" in attrs else getattr(self.instance, "region", None)
+
+        if "district" in attrs:
+            name = (attrs.pop("district") or "").strip()
+            if not name:
+                attrs["district"] = None
+            elif region is None:
+                raise serializers.ValidationError({"district": "Avval viloyatni tanlang"})
+            else:
+                district = District.objects.filter(region=region, name=name).first()
+                if district is None:
+                    raise serializers.ValidationError(
+                        {"district": f"“{region.name}” da bunday tuman yo‘q"},
+                    )
+                attrs["district"] = district
+        elif self.instance is not None and self.instance.district_id and "region" in attrs:
+            # Viloyat almashdi, tuman yuborilmadi — eski tuman endi mos emas
+            if self.instance.district.region_id != getattr(region, "id", None):
+                attrs["district"] = None
+
+        return attrs
 
     def get_hasPassword(self, user: User) -> bool:
         """Parol o'rnatilganmi — ro'yxatda belgi ko'rsatish uchun."""

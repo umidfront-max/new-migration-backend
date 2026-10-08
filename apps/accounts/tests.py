@@ -4,6 +4,8 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
+from apps.geography.models import District, Region
+
 from .models import AuditLogEntry, Role, User
 
 
@@ -147,6 +149,78 @@ class UserManagementTests(APITestCase):
         self.assertEqual(
             self.client.get(reverse("user-list")).status_code, status.HTTP_200_OK,
         )
+
+
+class UserTerritoryTests(APITestCase):
+    """Xodimga viloyat va tuman biriktirish."""
+
+    def setUp(self) -> None:
+        role = Role.objects.create(name="Super administrator")
+        self.admin = User.objects.create_user(
+            "admin.root", "kuchli-parol-123", full_name="A. Karimov", role=role,
+        )
+        self.tashkent = Region.objects.create(name="Toshkent viloyati", latitude=41.3, longitude=69.6)
+        self.samarkand = Region.objects.create(name="Samarqand", latitude=39.6, longitude=66.9)
+        self.chirchiq = District.objects.create(region=self.tashkent, name="Yuqori Chirchiq")
+        District.objects.create(region=self.samarkand, name="Urgut")
+        self.client.force_authenticate(self.admin)
+
+    def create(self, **extra):
+        return self.client.post(reverse("user-list"), {
+            "login": "operator.chirchiq", "name": "C. Operatorov",
+            "password": "yangi-parol-456", **extra,
+        }, format="json")
+
+    def test_user_gets_region_and_district(self) -> None:
+        response = self.create(region="Toshkent viloyati", district="Yuqori Chirchiq")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(response.data["region"], "Toshkent viloyati")
+        self.assertEqual(response.data["district"], "Yuqori Chirchiq")
+
+        user = User.objects.get(login="operator.chirchiq")
+        self.assertEqual(user.district, self.chirchiq)
+
+    def test_region_only_means_whole_region(self) -> None:
+        response = self.create(region="Samarqand")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(response.data["region"], "Samarqand")
+        self.assertIsNone(response.data["district"])
+
+    def test_no_territory_means_republic(self) -> None:
+        response = self.create()
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertIsNone(response.data["region"])
+        self.assertIsNone(response.data["district"])
+
+    def test_district_from_other_region_is_rejected(self) -> None:
+        response = self.create(region="Samarqand", district="Yuqori Chirchiq")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("district", response.data)
+
+    def test_district_without_region_is_rejected(self) -> None:
+        response = self.create(district="Yuqori Chirchiq")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("district", response.data)
+
+    def test_changing_region_clears_old_district(self) -> None:
+        self.create(region="Toshkent viloyati", district="Yuqori Chirchiq")
+        user = User.objects.get(login="operator.chirchiq")
+        response = self.client.patch(
+            reverse("user-detail", args=[user.pk]), {"region": "Samarqand"}, format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data["region"], "Samarqand")
+        self.assertIsNone(response.data["district"])
+
+    def test_clearing_district_keeps_region(self) -> None:
+        self.create(region="Toshkent viloyati", district="Yuqori Chirchiq")
+        user = User.objects.get(login="operator.chirchiq")
+        response = self.client.patch(
+            reverse("user-detail", args=[user.pk]), {"district": ""}, format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data["region"], "Toshkent viloyati")
+        self.assertIsNone(response.data["district"])
 
 
 class AuditLogTests(APITestCase):

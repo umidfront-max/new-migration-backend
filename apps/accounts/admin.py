@@ -14,12 +14,13 @@ class RoleAdmin(admin.ModelAdmin):
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     ordering = ("full_name",)
-    list_display = ("login", "full_name", "role", "unit", "status", "is_staff")
-    list_filter = ("status", "role", "is_staff", "is_superuser")
+    list_display = ("login", "full_name", "role", "region", "district", "status", "is_staff")
+    list_filter = ("status", "role", "region", "is_staff", "is_superuser")
     search_fields = ("login", "full_name", "unit")
     fieldsets = (
         (None, {"fields": ("login", "password")}),
         ("Shaxsiy ma’lumot", {"fields": ("full_name", "unit", "phone")}),
+        ("Biriktirilgan hudud", {"fields": ("region", "district")}),
         ("Huquqlar", {"fields": ("role", "status", "is_active", "is_staff",
                                  "is_superuser", "groups", "user_permissions")}),
         ("Sanalar", {"fields": ("last_login", "date_joined")}),
