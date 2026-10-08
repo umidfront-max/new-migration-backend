@@ -14,11 +14,12 @@ class MigrantFilter(filters.FilterSet):
 
     country = filters.CharFilter(field_name="country__code", lookup_expr="iexact")
     region = filters.CharFilter(field_name="region__name", lookup_expr="iexact")
+    district = filters.CharFilter(field_name="district__name", lookup_expr="iexact")
     risky = filters.BooleanFilter(method="filter_risky")
 
     class Meta:
         model = Migrant
-        fields = ["country", "region", "gender", "purpose", "legal_status"]
+        fields = ["country", "region", "district", "gender", "purpose", "legal_status"]
 
     def filter_risky(self, queryset, name, value):
         """`?risky=true` — huquqiy holati toza bo'lmaganlar."""
@@ -29,7 +30,7 @@ class MigrantFilter(filters.FilterSet):
 
 
 class MigrantViewSet(CsvExportMixin, AuditedModelViewSet):
-    queryset = Migrant.objects.select_related("country", "region", "employer").all()
+    queryset = Migrant.objects.select_related("country", "region", "district", "employer").all()
     serializer_class = MigrantSerializer
     filterset_class = MigrantFilter
     audit_label = "Reyestr yozuvi"

@@ -1,7 +1,7 @@
 """Reyestr serializerlari."""
 from rest_framework import serializers
 
-from apps.geography.models import Country, Region
+from apps.geography.models import Country, District, Region
 
 from .models import Employer, Migrant
 from .services import calculate_risk_score
@@ -9,7 +9,10 @@ from .services import calculate_risk_score
 
 class MigrantSerializer(serializers.ModelSerializer):
     """
-    Davlat kodi va hudud nomi bo'yicha ishlaydi.
+    Davlat kodi, hudud va tuman nomi bo'yicha ishlaydi.
+
+    Tuman nomi faqat viloyat ichida noyob, shuning uchun u tanlangan viloyat
+    ichidan qidiriladi. Viloyat almashsa, eski viloyatdagi tuman tozalanadi.
 
     `employer` — matn: reyestrda shunday nomli tashkilot bo'lsa avtomatik
     bog'lanadi, bo'lmasa erkin matn sifatida saqlanadi.
@@ -23,6 +26,7 @@ class MigrantSerializer(serializers.ModelSerializer):
     country = serializers.CharField(source="country.name", read_only=True)
     flag = serializers.CharField(source="country.flag", read_only=True)
     region = serializers.SlugRelatedField(slug_field="name", queryset=Region.objects.all())
+    district = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     remit = serializers.CharField(source="remittance_band", required=False, allow_blank=True)
     marital = serializers.CharField(source="marital_status", required=False, allow_blank=True)
@@ -43,11 +47,45 @@ class MigrantSerializer(serializers.ModelSerializer):
         model = Migrant
         fields = [
             "id", "pinfl", "name", "nationality", "gender", "speciality",
-            "countryCode", "country", "flag", "region", "purpose",
+            "countryCode", "country", "flag", "region", "district", "purpose",
             "remit", "marital", "health", "convicted",
             "employer", "employerId", "address", "phone",
             "risk", "score", "exitDate",
         ]
+
+    def to_representation(self, migrant: Migrant) -> dict:
+        data = super().to_representation(migrant)
+        data["district"] = migrant.district.name if migrant.district_id else None
+        return data
+
+    def validate(self, attrs: dict) -> dict:
+        region = attrs["region"] if "region" in attrs else getattr(self.instance, "region", None)
+        touched = self.instance is None or "region" in attrs or "district" in attrs
+
+        if "district" in attrs:
+            name = (attrs.pop("district") or "").strip()
+            if not name:
+                attrs["district"] = None
+            elif region is None:
+                raise serializers.ValidationError({"district": "Avval viloyatni tanlang"})
+            else:
+                district = District.objects.filter(region=region, name=name).first()
+                if district is None:
+                    raise serializers.ValidationError(
+                        {"district": f"“{region.name}” da bunday tuman yo‘q"},
+                    )
+                attrs["district"] = district
+        elif self.instance is not None and self.instance.district_id and "region" in attrs:
+            # Viloyat almashdi, tuman yuborilmadi — eski tuman endi mos emas
+            if self.instance.district.region_id != getattr(region, "id", None):
+                attrs["district"] = None
+
+        # Hududning tumanlari bor bo'lsa — chiqqan tuman ham ko'rsatilishi shart
+        district = attrs["district"] if "district" in attrs else getattr(self.instance, "district", None)
+        if touched and region is not None and district is None and region.districts.exists():
+            raise serializers.ValidationError({"district": "Chiqqan tumanni tanlang"})
+
+        return attrs
 
     def _apply_auto_score(self, validated: dict, instance: Migrant | None = None) -> dict:
         """Ball berilmagan bo'lsa modeldan hisoblab qo'yadi."""
@@ -81,7 +119,11 @@ class MigrantSerializer(serializers.ModelSerializer):
 
 
 class EmployerSerializer(serializers.ModelSerializer):
-    """Davlatlar ro'yxatdan tanlanadi, `formal` tanlovdan kelib chiqadi."""
+    """
+    Davlatlar ro'yxatdan tanlanadi, `formal` tanlovdan kelib chiqadi.
+
+    Yuborilgan migrantlar va jo'natma formada kiritilmaydi — faqat o'qiladi.
+    """
 
     dir = serializers.CharField(source="direction")
     countries = serializers.SlugRelatedField(
@@ -90,8 +132,8 @@ class EmployerSerializer(serializers.ModelSerializer):
     employment = serializers.ChoiceField(
         source="employment_type", choices=Employer.Employment.choices, required=False,
     )
-    sent = serializers.IntegerField(source="sent_count", required=False)
-    remit = serializers.IntegerField(source="remittance_amount", required=False)
+    sent = serializers.IntegerField(source="sent_count", read_only=True)
+    remit = serializers.IntegerField(source="remittance_amount", read_only=True)
     formal = serializers.IntegerField(source="formal_share", read_only=True)
     migrantCount = serializers.IntegerField(source="migrants.count", read_only=True)
 

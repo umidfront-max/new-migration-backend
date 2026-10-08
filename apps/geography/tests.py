@@ -1,4 +1,8 @@
 """Geografiya testlari: davlat ko'rsatkichlari, punkt, tuman."""
+import json
+from pathlib import Path
+
+from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -6,6 +10,7 @@ from rest_framework.test import APITestCase
 from apps.accounts.models import Role, User
 
 from .models import BorderPoint, Country, District, Region
+from .uz_districts import UZ_DISTRICTS, ensure_districts
 
 
 class GeographyApiTests(APITestCase):
@@ -125,3 +130,22 @@ class RegionEmployedTests(APITestCase):
         }, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         self.assertEqual(response.data["employed"], 19400)
+
+
+class UzDistrictsTests(APITestCase):
+    """Barcha hududlar uchun tumanlar ro'yxati."""
+
+    def test_every_seed_region_has_districts(self) -> None:
+        seed = json.loads((Path(settings.BASE_DIR) / "seed" / "demo_seed.json").read_text("utf-8"))
+        self.assertEqual({row["name"] for row in seed["regions"]}, set(UZ_DISTRICTS))
+        for name, districts in UZ_DISTRICTS.items():
+            self.assertEqual(len(districts), len(set(districts)), name)
+
+    def test_ensure_districts_keeps_existing_stats(self) -> None:
+        region = Region.objects.create(name="Toshkent viloyati", latitude=41.0, longitude=69.6)
+        District.objects.create(region=region, name="Zangiota", departed=3800)
+        created = ensure_districts(Region, District)
+        self.assertEqual(created, len(UZ_DISTRICTS["Toshkent viloyati"]) - 1)
+        self.assertEqual(District.objects.get(name="Zangiota").departed, 3800)
+        self.assertEqual(ensure_districts(Region, District), 0)
+

@@ -7,3 +7,6 @@ class RegistryConfig(AppConfig):
     name = "apps.registry"
     label = "registry"
     verbose_name = "Reyestr"
+
+    def ready(self) -> None:
+        from . import signals  # noqa: F401 — signal qabul qiluvchilarni ulash

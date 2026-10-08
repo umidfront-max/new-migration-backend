@@ -30,6 +30,7 @@ from apps.analytics.models import (
     TimeSeries,
 )
 from apps.geography.models import BorderPoint, BorderSource, Country, District, Region
+from apps.geography.uz_districts import ensure_districts
 from apps.monitoring.models import (
     ConsulateCase,
     ConsulateService,
@@ -99,11 +100,13 @@ class Command(BaseCommand):
             countries = self.seed_countries(data["countries"])
             regions = self.seed_regions(data["regions"])
             self.seed_districts(data["districts"], regions)
+            ensure_districts(Region, District)
             self.seed_border(data["borderPoints"], data["borderSources"], regions)
 
             self.seed_employers(data["employers"], countries)
             self.seed_migrants(data["migrants"], countries, regions)
             self.link_migrant_employers()
+            Employer.recount_sent()
 
             self.seed_monitoring(data, countries)
             self.seed_analytics(data)
@@ -257,10 +260,17 @@ class Command(BaseCommand):
         self, rows: list[dict], countries: dict[str, Country], regions: dict[str, Region],
     ) -> None:
         fallback_region = next(iter(regions.values()), None)
+        districts: dict[int, list[District]] = {}
+        for district in District.objects.order_by("name"):
+            districts.setdefault(district.region_id, []).append(district)
         for row in rows:
             country = countries.get(row.get("countryCode", ""))
             if country is None:
                 continue
+            region = regions.get(row.get("region", ""), fallback_region)
+            # Demo migrantga hudud tumanlaridan biri — PINFL bo'yicha barqaror tanlanadi
+            options = districts.get(getattr(region, "id", None), [])
+            district = options[int(row["pinfl"]) % len(options)] if options else None
             Migrant.objects.update_or_create(
                 pinfl=row["pinfl"],
                 defaults={
@@ -269,7 +279,8 @@ class Command(BaseCommand):
                     "gender": row.get("gender", Migrant.Gender.MALE),
                     "speciality": row.get("speciality", ""),
                     "country": country,
-                    "region": regions.get(row.get("region", ""), fallback_region),
+                    "region": region,
+                    "district": district,
                     "purpose": row.get("purpose", Migrant.Purpose.FORMAL_WORK),
                     "remittance_band": row.get("remit", ""),
                     "marital_status": row.get("marital", ""),
@@ -304,7 +315,6 @@ class Command(BaseCommand):
                 defaults={
                     "direction": row.get("dir", ""),
                     "employment_type": row.get("employment", Employer.Employment.FORMAL),
-                    "sent_count": row.get("sent", 0),
                     "remittance_amount": row.get("remit", 0),
                     "status": row.get("status", Employer.Status.WATCHED),
                 },
