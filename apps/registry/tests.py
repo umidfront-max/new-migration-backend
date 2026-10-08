@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import AuditLogEntry, Role, User
-from apps.geography.models import Country, Region
+from apps.geography.models import Country, District, Region
 
 from .models import Employer, Migrant
 from .services import calculate_risk_score
@@ -112,6 +112,51 @@ class MigrantApiTests(APITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["name"], "Qidiruvda")
 
+    def test_district_is_saved_within_region(self) -> None:
+        District.objects.create(region=self.region, name="Zangiota")
+        response = self.client.post(
+            reverse("migrant-list"), self.payload(district="Zangiota"), format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(response.data["district"], "Zangiota")
+        self.assertEqual(Migrant.objects.get().district.name, "Zangiota")
+
+    def test_district_of_other_region_is_rejected(self) -> None:
+        other = Region.objects.create(name="Samarqand", latitude=39.6, longitude=66.9)
+        District.objects.create(region=other, name="Urgut")
+        response = self.client.post(
+            reverse("migrant-list"), self.payload(district="Urgut"), format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("district", response.data)
+
+    def test_region_change_clears_district(self) -> None:
+        district = District.objects.create(region=self.region, name="Zangiota")
+        Region.objects.create(name="Samarqand", latitude=39.6, longitude=66.9)
+        migrant = Migrant.objects.create(
+            pinfl="44444444444444", full_name="Ko‘chgan", country=self.country,
+            region=self.region, district=district,
+        )
+        response = self.client.patch(
+            reverse("migrant-detail", args=[migrant.pk]), {"region": "Samarqand"}, format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertIsNone(response.data["district"])
+
+    def test_district_filter(self) -> None:
+        zangiota = District.objects.create(region=self.region, name="Zangiota")
+        Migrant.objects.create(
+            pinfl="55555555555555", full_name="Zangiotalik", country=self.country,
+            region=self.region, district=zangiota,
+        )
+        Migrant.objects.create(
+            pinfl="66666666666666", full_name="Tumansiz", country=self.country,
+            region=self.region,
+        )
+        response = self.client.get(reverse("migrant-list"), {"district": "Zangiota"})
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["name"], "Zangiotalik")
+
 
 class EmployerApiTests(APITestCase):
     """Ish beruvchida davlatlar tanlovi va shartnoma turi."""
@@ -181,3 +226,13 @@ class EmployerApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         self.assertEqual(sorted(response.data["countries"]), ["Qozog‘iston", "Rossiya"])
         self.assertEqual(response.data["formal"], 100)
+
+    def test_sent_and_remit_are_read_only(self) -> None:
+        """Yuborilganlar va jo'natma formada kiritilmaydi — kelgan qiymat e'tiborsiz."""
+        response = self.client.post(reverse("employer-list"), {
+            "name": "Statistika MChJ", "dir": "IT", "countries": ["Rossiya"],
+            "sent": 500, "remit": 40,
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        employer = Employer.objects.get(name="Statistika MChJ")
+        self.assertEqual((employer.sent_count, employer.remittance_amount), (0, 0))

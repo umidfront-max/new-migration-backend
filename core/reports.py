@@ -41,7 +41,7 @@ def migrant_row(migrant) -> list:
     return [
         migrant.pinfl, migrant.full_name, migrant.gender, migrant.nationality,
         migrant.speciality, migrant.country.name, migrant.region.name,
-        migrant.purpose, migrant.employer_label, migrant.legal_status,
+        migrant.district.name if migrant.district_id else "", migrant.purpose, migrant.employer_label, migrant.legal_status,
         migrant.risk_score, _date(migrant.exit_date), migrant.phone,
     ]
 
@@ -50,7 +50,7 @@ MIGRANT_EXPORT = ExportSpec(
     filename="migrantlar",
     headers=[
         "PINFL", "F.I.Sh", "Jinsi", "Millati", "Mutaxassisligi",
-        "Davlat", "Hudud", "Maqsad", "Ish beruvchi",
+        "Davlat", "Hudud", "Tuman", "Maqsad", "Ish beruvchi",
         "Holati", "Risk ball", "Chiqish sanasi", "Telefon",
     ],
     row=migrant_row,

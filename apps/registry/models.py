@@ -2,7 +2,7 @@
 from django.core.validators import RegexValidator
 from django.db import models
 
-from apps.geography.models import Country, Region
+from apps.geography.models import Country, District, Region
 from core.models import TimeStampedModel
 
 pinfl_validator = RegexValidator(r"^\d{14}$", "PINFL 14 ta raqamdan iborat bo‘lishi kerak")
@@ -94,6 +94,10 @@ class Migrant(TimeStampedModel):
     region = models.ForeignKey(
         Region, verbose_name="chiqqan hududi",
         on_delete=models.PROTECT, related_name="migrants",
+    )
+    district = models.ForeignKey(
+        District, verbose_name="chiqqan tumani",
+        on_delete=models.PROTECT, related_name="migrants", null=True, blank=True,
     )
 
     purpose = models.CharField(
