@@ -109,6 +109,12 @@ jurnaliga tushadi va soatiga cheklangan (`THROTTLE_EXPORT`).
 
 ## Muhim mantiq
 
+**Migrant hujjati.** Migrant PINFL yoki pasport seriya-raqamidan bittasi bilan
+qo'shiladi. `pinfl` — 14 ta raqam, `passport` — 2 ta lotin harfi va 7 ta raqam
+(masalan `AA1234567`). Tanlanmagan maydon `null` bo'ladi; har ikkala hujjat
+alohida noyob. Hujjatni almashtirishda eski maydonni `null` qilib yuboring.
+Pasport harflari katta harfga aylantiriladi va qidiruv hamda CSV eksportda ishlaydi.
+
 **Risk ball avtomatik.** Migrant qo'shishda `score` berilmasa,
 `apps/registry/services.py::calculate_risk_score` uni yo'nalish davlati xavfi,
 chiqish maqsadi, sudlanganlik, ish beruvchi va huquqiy holat asosida hisoblaydi.

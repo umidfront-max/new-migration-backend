@@ -1,4 +1,5 @@
 """Reyestr testlari: risk ball, ish beruvchi, filtrlar."""
+from django.db import IntegrityError, transaction
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -91,6 +92,99 @@ class MigrantApiTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("pinfl", response.data)
+
+    def test_passport_only_migrants_can_be_created(self) -> None:
+        for passport in ("AA1234567", "AB7654321"):
+            with self.subTest(passport=passport):
+                payload = self.payload(passport=passport)
+                payload.pop("pinfl")
+                response = self.client.post(reverse("migrant-list"), payload, format="json")
+                self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+                self.assertIsNone(response.data["pinfl"])
+                self.assertEqual(response.data["passport"], passport)
+                self.assertEqual(Migrant.objects.get(pk=response.data["id"]).passport_number, passport)
+        self.assertEqual(Migrant.objects.filter(pinfl__isnull=True).count(), 2)
+
+    def test_passport_is_normalized_before_uniqueness_check(self) -> None:
+        response = self.client.post(
+            reverse("migrant-list"), self.payload(pinfl="", passport=" ab 1234567 "), format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(response.data["passport"], "AB1234567")
+        self.assertIsNone(response.data["pinfl"])
+        duplicate = self.client.post(
+            reverse("migrant-list"), self.payload(pinfl=None, passport="ab1234567"), format="json",
+        )
+        self.assertEqual(duplicate.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("passport", duplicate.data)
+
+    def test_passport_format_is_validated(self) -> None:
+        for passport in ("123456789", "A12345678", "ABC123456", "AA123456", "AA12345678", "AA123456X"):
+            with self.subTest(passport=passport):
+                response = self.client.post(
+                    reverse("migrant-list"), self.payload(pinfl=None, passport=passport), format="json",
+                )
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn("passport", response.data)
+
+    def test_exactly_one_identifier_is_required(self) -> None:
+        for identifiers in ({}, {"pinfl": None, "passport": None}, {"pinfl": "", "passport": ""},
+                            {"pinfl": "12345678901234", "passport": "AA1234567"}):
+            with self.subTest(identifiers=identifiers):
+                payload = self.payload()
+                payload.pop("pinfl")
+                payload.update(identifiers)
+                response = self.client.post(reverse("migrant-list"), payload, format="json")
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn("pinfl", response.data)
+                self.assertIn("passport", response.data)
+
+    def test_pinfl_remains_unique(self) -> None:
+        first = self.client.post(reverse("migrant-list"), self.payload(), format="json")
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED, first.data)
+        duplicate = self.client.post(reverse("migrant-list"), self.payload(), format="json")
+        self.assertEqual(duplicate.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("pinfl", duplicate.data)
+
+    def test_identifier_can_be_switched_and_preserved_on_partial_update(self) -> None:
+        created = self.client.post(reverse("migrant-list"), self.payload(), format="json")
+        detail = reverse("migrant-detail", args=[created.data["id"]])
+        switched = self.client.patch(detail, {"pinfl": None, "passport": "AA1234567"}, format="json")
+        self.assertEqual(switched.status_code, status.HTTP_200_OK, switched.data)
+        self.assertIsNone(switched.data["pinfl"])
+        self.assertEqual(switched.data["passport"], "AA1234567")
+        renamed = self.client.patch(detail, {"name": "Yangilangan"}, format="json")
+        self.assertEqual(renamed.status_code, status.HTTP_200_OK, renamed.data)
+        self.assertEqual(renamed.data["passport"], "AA1234567")
+        cleared = self.client.patch(detail, {"passport": ""}, format="json")
+        self.assertEqual(cleared.status_code, status.HTTP_400_BAD_REQUEST)
+        restored = self.client.patch(detail, {"pinfl": "12345678901234", "passport": None}, format="json")
+        self.assertEqual(restored.status_code, status.HTTP_200_OK, restored.data)
+        self.assertEqual(restored.data["pinfl"], "12345678901234")
+        self.assertIsNone(restored.data["passport"])
+
+    def test_passport_is_searchable_and_exported(self) -> None:
+        created = self.client.post(
+            reverse("migrant-list"), self.payload(pinfl=None, passport="AA1234567"), format="json",
+        )
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED, created.data)
+        searched = self.client.get(reverse("migrant-list"), {"search": "aa1234567"})
+        self.assertEqual(searched.status_code, status.HTTP_200_OK, searched.data)
+        self.assertEqual(searched.data["count"], 1)
+        self.assertEqual(searched.data["results"][0]["id"], created.data["id"])
+        exported = self.client.get(reverse("migrant-export"), {"search": "AA1234567"})
+        self.assertEqual(exported.status_code, status.HTTP_200_OK)
+        self.assertIn("Pasport seriya-raqami", exported.content.decode("utf-8-sig"))
+        self.assertIn("AA1234567", exported.content.decode("utf-8-sig"))
+
+    def test_database_requires_exactly_one_nonempty_identifier(self) -> None:
+        for identifiers in ({}, {"pinfl": ""}, {"passport_number": ""},
+                            {"pinfl": "12345678901234", "passport_number": "AA1234567"}):
+            with self.subTest(identifiers=identifiers):
+                with self.assertRaises(IntegrityError), transaction.atomic():
+                    Migrant.objects.create(
+                        full_name="Hujjatsiz", country=self.country, region=self.region, **identifiers,
+                    )
 
     def test_create_writes_audit_entry(self) -> None:
         self.client.post(reverse("migrant-list"), self.payload(), format="json")

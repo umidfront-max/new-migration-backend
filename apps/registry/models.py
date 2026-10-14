@@ -6,6 +6,9 @@ from apps.geography.models import Country, District, Region
 from core.models import TimeStampedModel
 
 pinfl_validator = RegexValidator(r"^\d{14}$", "PINFL 14 ta raqamdan iborat bo‘lishi kerak")
+passport_validator = RegexValidator(
+    r"^[A-Z]{2}[0-9]{7}$", "Pasport seriya-raqami 2 ta lotin harfi va 7 ta raqamdan iborat bo‘lishi kerak",
+)
 
 
 class Employer(TimeStampedModel):
@@ -103,6 +106,11 @@ class Migrant(TimeStampedModel):
 
     pinfl = models.CharField(
         "PINFL", max_length=14, unique=True, validators=[pinfl_validator], db_index=True,
+        null=True, blank=True,
+    )
+    passport_number = models.CharField(
+        "pasport seriya-raqami", max_length=9, unique=True, validators=[passport_validator],
+        null=True, blank=True,
     )
     full_name = models.CharField("F.I.Sh", max_length=180, db_index=True)
     nationality = models.CharField("millati", max_length=60, blank=True)
@@ -157,9 +165,20 @@ class Migrant(TimeStampedModel):
             models.Index(fields=["legal_status"]),
             models.Index(fields=["gender"]),
         ]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(pinfl__isnull=False, passport_number__isnull=True) & ~models.Q(pinfl="")
+                ) | (
+                    models.Q(pinfl__isnull=True, passport_number__isnull=False) & ~models.Q(passport_number="")
+                ),
+                name="migrant_exactly_one_identifier",
+                violation_error_message="PINFL yoki pasport seriya-raqamidan bittasini kiriting",
+            ),
+        ]
 
     def __str__(self) -> str:
-        return f"{self.full_name} — {self.pinfl}"
+        return f"{self.full_name} — {self.pinfl or self.passport_number}"
 
     @property
     def is_at_risk(self) -> bool:

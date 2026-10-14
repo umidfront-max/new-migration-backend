@@ -34,7 +34,7 @@ class MigrantViewSet(CsvExportMixin, AuditedModelViewSet):
     serializer_class = MigrantSerializer
     filterset_class = MigrantFilter
     audit_label = "Reyestr yozuvi"
-    search_fields = ["full_name", "pinfl", "phone"]
+    search_fields = ["full_name", "pinfl", "passport_number", "phone"]
     ordering_fields = ["full_name", "risk_score", "exit_date", "created_at"]
 
     export_filename = MIGRANT_EXPORT.filename

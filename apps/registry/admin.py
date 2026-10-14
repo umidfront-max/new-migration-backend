@@ -6,10 +6,10 @@ from .models import Employer, Migrant
 
 @admin.register(Migrant)
 class MigrantAdmin(admin.ModelAdmin):
-    list_display = ("full_name", "pinfl", "gender", "country", "region",
+    list_display = ("full_name", "pinfl", "passport_number", "gender", "country", "region",
                     "legal_status", "risk_score")
     list_filter = ("gender", "legal_status", "purpose", "country")
-    search_fields = ("full_name", "pinfl", "phone")
+    search_fields = ("full_name", "pinfl", "passport_number", "phone")
     autocomplete_fields = ("country", "region")
 
 

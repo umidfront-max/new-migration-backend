@@ -1,9 +1,12 @@
 """Reyestr serializerlari."""
+from collections.abc import Mapping
+
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from apps.geography.models import Country, District, Region
 
-from .models import Employer, Migrant
+from .models import Employer, Migrant, passport_validator
 from .services import calculate_risk_score
 
 
@@ -20,6 +23,17 @@ class MigrantSerializer(serializers.ModelSerializer):
     """
 
     name = serializers.CharField(source="full_name")
+    passport = serializers.CharField(
+        source="passport_number", required=False, allow_blank=True, allow_null=True,
+        max_length=9,
+        validators=[
+            passport_validator,
+            UniqueValidator(
+                queryset=Migrant.objects.all(),
+                message="Bu pasport seriya-raqami bilan migrant allaqachon mavjud",
+            ),
+        ],
+    )
     countryCode = serializers.SlugRelatedField(
         source="country", slug_field="code", queryset=Country.objects.all(),
     )
@@ -46,12 +60,23 @@ class MigrantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Migrant
         fields = [
-            "id", "pinfl", "name", "nationality", "gender", "speciality",
+            "id", "pinfl", "passport", "name", "nationality", "gender", "speciality",
             "countryCode", "country", "flag", "region", "district", "purpose",
             "remit", "marital", "health", "convicted",
             "employer", "employerId", "address", "phone",
             "risk", "score", "exitDate",
         ]
+
+    def to_internal_value(self, data) -> dict:
+        if isinstance(data, Mapping):
+            data = data.copy()
+            for key in ("pinfl", "passport"):
+                if isinstance(data.get(key), str):
+                    value = data[key].strip()
+                    if key == "passport":
+                        value = "".join(value.split()).upper()
+                    data[key] = value or None
+        return super().to_internal_value(data)
 
     def to_representation(self, migrant: Migrant) -> dict:
         data = super().to_representation(migrant)
@@ -59,6 +84,15 @@ class MigrantSerializer(serializers.ModelSerializer):
         return data
 
     def validate(self, attrs: dict) -> dict:
+        pinfl = attrs.get("pinfl", getattr(self.instance, "pinfl", None))
+        passport = attrs.get("passport_number", getattr(self.instance, "passport_number", None))
+        if not pinfl and not passport:
+            message = "PINFL yoki pasport seriya-raqamidan bittasini kiriting"
+            raise serializers.ValidationError({"pinfl": message, "passport": message})
+        if pinfl and passport:
+            message = "Faqat bitta hujjatni kiriting: PINFL yoki pasport seriya-raqami"
+            raise serializers.ValidationError({"pinfl": message, "passport": message})
+
         region = attrs["region"] if "region" in attrs else getattr(self.instance, "region", None)
         touched = self.instance is None or "region" in attrs or "district" in attrs
 
