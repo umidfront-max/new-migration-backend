@@ -167,7 +167,7 @@ class Migrant(TimeStampedModel):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=(
+                check=(
                     models.Q(pinfl__isnull=False, passport_number__isnull=True) & ~models.Q(pinfl="")
                 ) | (
                     models.Q(pinfl__isnull=True, passport_number__isnull=False) & ~models.Q(passport_number="")

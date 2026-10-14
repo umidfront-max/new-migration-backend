@@ -24,6 +24,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='migrant',
-            constraint=models.CheckConstraint(condition=models.Q(models.Q(('passport_number__isnull', True), ('pinfl__isnull', False), models.Q(('pinfl', ''), _negated=True)), models.Q(('passport_number__isnull', False), ('pinfl__isnull', True), models.Q(('passport_number', ''), _negated=True)), _connector='OR'), name='migrant_exactly_one_identifier', violation_error_message='PINFL yoki pasport seriya-raqamidan bittasini kiriting'),
+            constraint=models.CheckConstraint(check=models.Q(models.Q(('passport_number__isnull', True), ('pinfl__isnull', False), models.Q(('pinfl', ''), _negated=True)), models.Q(('passport_number__isnull', False), ('pinfl__isnull', True), models.Q(('passport_number', ''), _negated=True)), _connector='OR'), name='migrant_exactly_one_identifier', violation_error_message='PINFL yoki pasport seriya-raqamidan bittasini kiriting'),
         ),
     ]
